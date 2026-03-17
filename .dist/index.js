@@ -1,1 +1,20 @@
-console.log("Hello via Bun!");
+import { TestDatabase } from "./lib/TestDatabase";
+import { TestUserRepository } from "./services/concrete/TestUserRepository";
+import { UserService } from "./services/UserService";
+import { RoleEnum } from "./type/user";
+import { TestSeniorRepository } from "./services/concrete/TestSeniorRepository";
+import { SeniorManagementService } from "./services/SeniorManagementService";
+import { Senior } from "./entity/Senior";
+const main = () => {
+    const db = new TestDatabase();
+    const userRepo = new TestUserRepository(db);
+    const seRepo = new TestSeniorRepository(db);
+    const userService = new UserService(userRepo);
+    const seniorMan = new SeniorManagementService(userRepo, seRepo);
+    db.dump();
+    const id = userService.createUser("johnDoe@gmail.com", "john", "Doe", RoleEnum.ADULTCHILD);
+    db.dump();
+    seniorMan.addSeniorToAdultChild(id, { fullname: "eeee", dob: "Eeee", healthnote: "eeee", mob: "eeeee" });
+    db.dump();
+};
+main();
