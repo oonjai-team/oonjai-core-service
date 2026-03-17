@@ -7,6 +7,10 @@ To maintain a smooth and efficient development process, please follow these guid
 Before writing any code, read **[system_overview.md](./system_overview.md)** in full.
 It explains the DDD architecture, how layers are structured, and exactly what you need to touch to add a feature. This is not optional — the overview is short and will save you from breaking things.
 
+### UI API Endpoint Debugger
+
+Open `./api-debug.html` locally to debug API endpoints and test your changes.
+
 ### What You Should Work On
 
 When contributing a feature, your work will almost always fall into these three areas:

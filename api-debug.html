@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oonjai Debug UI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a;
+      --text: #e2e8f0; --muted: #64748b; --accent: #6366f1;
+      --accent-hover: #818cf8; --green: #22c55e; --red: #ef4444;
+      --yellow: #f59e0b; --orange: #f97316;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; min-height: 100vh;
+      display: grid; grid-template-columns: 270px 1fr; grid-template-rows: 48px 1fr;
+      height: 100vh; overflow: hidden;
+    }
+    /* ── Header ── */
+    header {
+      grid-column: 1/-1; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; padding: 0 20px;
+    }
+    header h1 { font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); transition: background .3s; }
+    .status-dot.online { background: var(--green); }
+    .status-dot.offline { background: var(--red); }
+    #base-url-input {
+      margin-left: auto; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 4px 10px; border-radius: 6px; font-size: 13px; width: 220px;
+    }
+    .legend { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 8px; margin-left: 12px; }
+    .legend span { display: flex; align-items: center; gap: 4px; }
+    .dot-sm { width: 6px; height: 6px; border-radius: 50%; }
+    /* ── Sidebar ── */
+    nav { background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+    #session-badge { padding: 10px 12px; background: var(--bg); border-bottom: 1px solid var(--border); font-size: 12px; flex-shrink: 0; }
+    #session-badge .badge-label { color: var(--muted); margin-bottom: 4px; }
+    #session-badge .badge-user { font-weight: 600; color: var(--green); }
+    #session-badge .badge-user.empty { color: var(--muted); font-weight: 400; }
+    /* Workspace */
+    .workspace { border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .section-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 12px; cursor: pointer; user-select: none;
+      font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .08em; text-transform: uppercase;
+    }
+    .section-toggle:hover { color: var(--text); }
+    .section-toggle .chev { font-size: 9px; transition: transform .2s; }
+    .section-toggle.open .chev { transform: rotate(90deg); }
+    .section-body { display: none; padding: 4px 8px 8px; }
+    .section-body.open { display: block; }
+    .ctx-row { margin-bottom: 5px; }
+    .ctx-row label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+    .ctx-row input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 4px 8px; border-radius: 5px; font-size: 11px; font-family: monospace;
+    }
+    .ctx-row input:focus { outline: none; border-color: var(--accent); }
+    /* Nav groups */
+    .nav-group { border-bottom: 1px solid var(--border); }
+    .nav-group-body { display: none; padding-bottom: 4px; }
+    .nav-group-body.open { display: block; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 7px; width: 100%;
+      background: none; border: none; color: var(--text);
+      padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; text-align: left;
+      transition: background .15s;
+    }
+    .nav-btn:hover { background: var(--border); }
+    .nav-btn.active { background: var(--accent); color: #fff; }
+    .method-badge {
+      font-size: 9px; font-weight: 700; padding: 2px 4px; border-radius: 3px;
+      flex-shrink: 0; letter-spacing: .05em; min-width: 36px; text-align: center;
+    }
+    .GET    { background: #14532d; color: #4ade80; }
+    .POST   { background: #1d4ed8; color: #93c5fd; }
+    .PUT    { background: #78350f; color: #fbbf24; }
+    .DELETE { background: #7f1d1d; color: #fca5a5; }
+    .impl-dot { width: 6px; height: 6px; border-radius: 50%; margin-left: auto; flex-shrink: 0; }
+    .impl-dot.yes { background: var(--green); }
+    .impl-dot.no  { background: var(--orange); opacity: .8; }
+    /* ── Main ── */
+    main { padding: 24px; overflow-y: auto; }
+    .panel { display: none; max-width: 740px; }
+    .panel.active { display: block; }
+    .panel-header { margin-bottom: 18px; }
+    .panel-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .panel-path { color: var(--muted); font-size: 12px; font-family: monospace; }
+    .not-impl-banner {
+      background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.35);
+      border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--orange); margin-bottom: 18px;
+    }
+    .not-impl-banner strong { display: block; margin-bottom: 2px; }
+    /* Forms */
+    .form-row { margin-bottom: 13px; }
+    .form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+    .form-row input, .form-row select, .form-row textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 12px; border-radius: 7px; font-size: 13px; font-family: inherit;
+      transition: border-color .15s;
+    }
+    .form-row textarea { resize: vertical; min-height: 72px; font-family: monospace; font-size: 12px; }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: none; border-color: var(--accent); }
+    .form-row .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .ctx-pull { font-size: 10px; color: var(--accent); margin-top: 3px; cursor: pointer; display: inline-block; }
+    .ctx-pull:hover { color: var(--accent-hover); }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent); color: #fff; border: none; padding: 8px 18px;
+      border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.danger { background: var(--red); }
+    .btn.danger:hover { background: #dc2626; }
+    /* Response */
+    .response-box { margin-top: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .response-header { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+    .status-code { font-weight: 700; font-size: 13px; }
+    .status-code.ok   { color: var(--green); }
+    .status-code.err  { color: var(--red); }
+    .status-code.warn { color: var(--yellow); }
+    .response-actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+    .save-id-btn { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--accent); color: #fff; border: none; cursor: pointer; font-weight: 500; }
+    .save-id-btn:hover { background: var(--accent-hover); }
+    .response-body { padding: 12px 14px; font-family: "SF Mono","Fira Code",monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; color: #a5f3fc; max-height: 380px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="status-dot" id="status-dot"></div>
+  <h1>Oonjai Debug UI</h1>
+  <div class="legend">
+    <span><span class="dot-sm" style="background:var(--green)"></span>implemented</span>
+    <span><span class="dot-sm" style="background:var(--orange)"></span>todo</span>
+  </div>
+  <input id="base-url-input" type="text" value="http://localhost:3000" />
+</header>
+
+<nav>
+  <div id="session-badge">
+    <div class="badge-label">Logged in as</div>
+    <div class="badge-user empty" id="session-user">— not logged in —</div>
+  </div>
+
+  <!-- Context IDs -->
+  <div class="workspace">
+    <div class="section-toggle open" onclick="toggleSection(this,'workspace-body')">
+      <span>Context IDs</span><span class="chev">▶</span>
+    </div>
+    <div class="section-body open" id="workspace-body">
+      <div class="ctx-row"><label>Senior ID</label><input id="ctx-seniorId" placeholder="uuid" oninput="saveCtx('seniorId',this.value)" /></div>
+      <div class="ctx-row"><label>Caretaker ID</label><input id="ctx-caretakerId" placeholder="uuid" oninput="saveCtx('caretakerId',this.value)" /></div>
+      <div class="ctx-row"><label>Booking ID</label><input id="ctx-bookingId" placeholder="BK-xxxx" oninput="saveCtx('bookingId',this.value)" /></div>
+      <div class="ctx-row"><label>Log ID (incident)</label><input id="ctx-logId" placeholder="uuid" oninput="saveCtx('logId',this.value)" /></div>
+      <div class="ctx-row"><label>Verification ID</label><input id="ctx-verificationId" placeholder="uuid" oninput="saveCtx('verificationId',this.value)" /></div>
+    </div>
+  </div>
+
+  <!-- Auth -->
+  <div class="nav-group">
+    <div class="section-toggle open" onclick="toggleSection(this,'ng-auth')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Auth</span><span class="chev">▶</span></div>
+    <div class="section-body open" id="ng-auth">
+      <button class="nav-btn active" onclick="show('login',event)"><span class="method-badge POST">POST</span>Login<span class="impl-dot yes"></span></button>
+      <button class="nav-btn" onclick="show('register',event)"><span class="method-badge POST">POST</span>Register<span class="impl-dot yes"></span></button>
+      <button class="nav-btn" onclick="show('refresh',event)"><span class="method-badge POST">POST</span>Refresh Token<span class="impl-dot yes"></span></button>
+      <button class="nav-btn" onclick="show('logout',event)"><span class="method-badge POST">POST</span>Logout<span class="impl-dot yes"></span></button>
+      <button class="nav-btn" onclick="show('session',event)"><span class="method-badge GET">GET</span>Get Session<span class="impl-dot yes"></span></button>
+    </div>
+  </div>
+
+  <!-- Users -->
+  <div class="nav-group">
+    <div class="section-toggle open" onclick="toggleSection(this,'ng-users')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Users</span><span class="chev">▶</span></div>
+    <div class="section-body open" id="ng-users">
+      <button class="nav-btn" onclick="show('getMe',event)"><span class="method-badge GET">GET</span>Get Me<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('updateUser',event)"><span class="method-badge PUT">PUT</span>Update User<span class="impl-dot yes"></span></button>
+    </div>
+  </div>
+
+  <!-- Seniors -->
+  <div class="nav-group">
+    <div class="section-toggle open" onclick="toggleSection(this,'ng-seniors')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Seniors</span><span class="chev">▶</span></div>
+    <div class="section-body open" id="ng-seniors">
+      <button class="nav-btn" onclick="show('addSenior',event)"><span class="method-badge POST">POST</span>Add Senior<span class="impl-dot yes"></span></button>
+      <button class="nav-btn" onclick="show('getSeniors',event)"><span class="method-badge GET">GET</span>Get Seniors<span class="impl-dot yes"></span></button>
+      <button class="nav-btn" onclick="show('getSeniorById',event)"><span class="method-badge GET">GET</span>Get Senior by ID<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('removeSenior',event)"><span class="method-badge DELETE">DEL</span>Remove Senior<span class="impl-dot no"></span></button>
+    </div>
+  </div>
+
+  <!-- Caretakers -->
+  <div class="nav-group">
+    <div class="section-toggle" onclick="toggleSection(this,'ng-caretakers')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Caretakers</span><span class="chev">▶</span></div>
+    <div class="section-body" id="ng-caretakers">
+      <button class="nav-btn" onclick="show('getCaretakers',event)"><span class="method-badge GET">GET</span>List Caretakers<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('getCaretakerById',event)"><span class="method-badge GET">GET</span>Get Caretaker<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('updateCaretakerProfile',event)"><span class="method-badge PUT">PUT</span>Update Profile<span class="impl-dot no"></span></button>
+    </div>
+  </div>
+
+  <!-- Bookings -->
+  <div class="nav-group">
+    <div class="section-toggle" onclick="toggleSection(this,'ng-bookings')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Bookings</span><span class="chev">▶</span></div>
+    <div class="section-body" id="ng-bookings">
+      <button class="nav-btn" onclick="show('getBookings',event)"><span class="method-badge GET">GET</span>List Bookings<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('createBooking',event)"><span class="method-badge POST">POST</span>Create Booking<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('getBookingById',event)"><span class="method-badge GET">GET</span>Get Booking<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('updateBooking',event)"><span class="method-badge PUT">PUT</span>Update Booking<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('cancelBooking',event)"><span class="method-badge DELETE">DEL</span>Cancel Booking<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('confirmBooking',event)"><span class="method-badge POST">POST</span>Confirm Booking<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('endSession',event)"><span class="method-badge POST">POST</span>End Session<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('submitReview',event)"><span class="method-badge POST">POST</span>Submit Review<span class="impl-dot no"></span></button>
+    </div>
+  </div>
+
+  <!-- Payments -->
+  <div class="nav-group">
+    <div class="section-toggle" onclick="toggleSection(this,'ng-payments')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Payments</span><span class="chev">▶</span></div>
+    <div class="section-body" id="ng-payments">
+      <button class="nav-btn" onclick="show('initiatePayment',event)"><span class="method-badge POST">POST</span>Initiate Payment<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('getPaymentStatus',event)"><span class="method-badge GET">GET</span>Payment Status<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('paymentWebhook',event)"><span class="method-badge POST">POST</span>Webhook<span class="impl-dot no"></span></button>
+    </div>
+  </div>
+
+  <!-- Status Logs -->
+  <div class="nav-group">
+    <div class="section-toggle" onclick="toggleSection(this,'ng-statuslogs')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Status Logs</span><span class="chev">▶</span></div>
+    <div class="section-body" id="ng-statuslogs">
+      <button class="nav-btn" onclick="show('getStatusLogs',event)"><span class="method-badge GET">GET</span>Get Logs<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('createStatusLog',event)"><span class="method-badge POST">POST</span>Create Log<span class="impl-dot no"></span></button>
+    </div>
+  </div>
+
+  <!-- Incidents -->
+  <div class="nav-group">
+    <div class="section-toggle" onclick="toggleSection(this,'ng-incidents')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Incidents</span><span class="chev">▶</span></div>
+    <div class="section-body" id="ng-incidents">
+      <button class="nav-btn" onclick="show('getIncidentLogs',event)"><span class="method-badge GET">GET</span>Get Incidents<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('createIncidentLog',event)"><span class="method-badge POST">POST</span>Create Incident<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('updateIncidentLog',event)"><span class="method-badge PUT">PUT</span>Update Incident<span class="impl-dot no"></span></button>
+    </div>
+  </div>
+
+  <!-- Verifications -->
+  <div class="nav-group">
+    <div class="section-toggle" onclick="toggleSection(this,'ng-verif')"><span class="nav-label" style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">Verifications</span><span class="chev">▶</span></div>
+    <div class="section-body" id="ng-verif">
+      <button class="nav-btn" onclick="show('createVerification',event)"><span class="method-badge POST">POST</span>Submit Doc<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('getPendingVerifications',event)"><span class="method-badge GET">GET</span>Pending Docs<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('updateVerification',event)"><span class="method-badge PUT">PUT</span>Approve/Reject<span class="impl-dot no"></span></button>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ═══════════════════════════════ AUTH ════════════════════════════════════ -->
+
+  <div class="panel active" id="panel-login">
+    <div class="panel-header"><div class="panel-title">Login</div><div class="panel-path">POST /auth/login</div></div>
+    <div class="form-row"><label>Email</label><input id="login-email" type="email" placeholder="user@example.com" /></div>
+    <div class="form-row"><label>OAuth Token <span style="color:var(--muted)">(optional)</span></label><input id="login-oauth" type="text" placeholder="leave blank for debug" /></div>
+    <button class="btn" onclick="doLogin()">Send Request</button>
+    <div class="response-box" id="res-login" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-register">
+    <div class="panel-header"><div class="panel-title">Register</div><div class="panel-path">POST /auth/register</div></div>
+    <div class="form-row"><label>Email</label><input id="reg-email" type="email" placeholder="user@example.com" /></div>
+    <div class="row-2">
+      <div class="form-row"><label>First Name</label><input id="reg-firstname" type="text" placeholder="Jane" /></div>
+      <div class="form-row"><label>Last Name</label><input id="reg-lastname" type="text" placeholder="Doe" /></div>
+    </div>
+    <div class="row-2">
+      <div class="form-row"><label>Role</label><select id="reg-role"><option value="adult_child">adult_child</option><option value="caretaker">caretaker</option><option value="admin">admin</option></select></div>
+      <div class="form-row"><label>OAuth Token <span style="color:var(--muted)">(optional)</span></label><input id="reg-oauth" type="text" placeholder="optional" /></div>
+    </div>
+    <button class="btn" onclick="doRegister()">Send Request</button>
+    <div class="response-box" id="res-register" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-refresh">
+    <div class="panel-header"><div class="panel-title">Refresh Token</div><div class="panel-path">POST /auth/refresh</div></div>
+    <div class="form-row"><label>Refresh Token</label><input id="refresh-token" type="text" placeholder="Auto-filled from login" /><div class="hint">Auto-filled after login.</div></div>
+    <button class="btn" onclick="doRefresh()">Send Request</button>
+    <div class="response-box" id="res-refresh" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-logout">
+    <div class="panel-header"><div class="panel-title">Logout</div><div class="panel-path">POST /auth/logout</div></div>
+    <div class="form-row"><label>Bearer Token</label><input id="logout-token" type="text" placeholder="Auto-filled from login" /></div>
+    <button class="btn danger" onclick="doLogout()">Logout</button>
+    <div class="response-box" id="res-logout" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-session">
+    <div class="panel-header"><div class="panel-title">Get Session</div><div class="panel-path">GET /auth/session</div></div>
+    <div class="form-row">
+      <label>Bearer Token</label>
+      <input id="session-token" type="text" placeholder="Auto-filled from login" oninput="updateTokenHint('session-token','session-token-hint')" />
+      <div class="hint" id="session-token-hint">Auto-filled after login.</div>
+    </div>
+    <button class="btn" onclick="doGetSession()">Send Request</button>
+    <div class="response-box" id="res-session" style="display:none"></div>
+  </div>
+
+  <!-- ═══════════════════════════════ USERS ═══════════════════════════════════ -->
+
+  <div class="panel" id="panel-getMe">
+    <div class="panel-header"><div class="panel-title">Get My Profile</div><div class="panel-path">GET /users/me</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/users/getMe.ts</code> → register in <code>index.ts</code></div>
+    <button class="btn" onclick="doGetMe()">Send Request</button>
+    <div class="response-box" id="res-getMe" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-updateUser">
+    <div class="panel-header"><div class="panel-title">Update User</div><div class="panel-path">PUT /users/update</div></div>
+    <div class="row-2">
+      <div class="form-row"><label>First Name <span style="color:var(--muted)">(optional)</span></label><input id="upd-firstname" type="text" placeholder="Jane" /></div>
+      <div class="form-row"><label>Last Name <span style="color:var(--muted)">(optional)</span></label><input id="upd-lastname" type="text" placeholder="Doe" /></div>
+    </div>
+    <div class="form-row"><label>Email <span style="color:var(--muted)">(optional)</span></label><input id="upd-email" type="email" placeholder="new@example.com" /></div>
+    <button class="btn" onclick="doUpdateUser()">Send Request</button>
+    <div class="response-box" id="res-updateUser" style="display:none"></div>
+  </div>
+
+  <!-- ═══════════════════════════════ SENIORS ═════════════════════════════════ -->
+
+  <div class="panel" id="panel-addSenior">
+    <div class="panel-header"><div class="panel-title">Add Senior</div><div class="panel-path">POST /users/seniors</div></div>
+    <div class="row-2">
+      <div class="form-row"><label>Full Name</label><input id="as-fullname" type="text" placeholder="Robert Doe" /></div>
+      <div class="form-row"><label>Date of Birth</label><input id="as-dob" type="text" placeholder="1945-06-15" /></div>
+    </div>
+    <div class="row-2">
+      <div class="form-row"><label>Mobility Level</label><select id="as-mobility"><option value="wheelchair">wheelchair</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select></div>
+      <div class="form-row"><label>Health Note</label><input id="as-health" type="text" placeholder="Diabetes, hypertension..." /></div>
+    </div>
+    <button class="btn" onclick="doAddSenior()">Send Request</button>
+    <div class="response-box" id="res-addSenior" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-getSeniors">
+    <div class="panel-header"><div class="panel-title">Get Seniors</div><div class="panel-path">GET /users/seniors</div></div>
+    <button class="btn" onclick="doGetSeniors()">Send Request</button>
+    <div class="response-box" id="res-getSeniors" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-getSeniorById">
+    <div class="panel-header"><div class="panel-title">Get Senior by ID</div><div class="panel-path">GET /users/seniors/:seniorId</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/seniors/getSeniorById.ts</code></div>
+    <div class="form-row"><label>Senior ID</label><input id="gsb-seniorId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('gsb-seniorId','seniorId')">↓ from context</span></div>
+    <button class="btn" onclick="doGetSeniorById()">Send Request</button>
+    <div class="response-box" id="res-getSeniorById" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-removeSenior">
+    <div class="panel-header"><div class="panel-title">Remove Senior</div><div class="panel-path">DELETE /users/seniors/:seniorId</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/seniors/removeSenior.ts</code></div>
+    <div class="form-row"><label>Senior ID</label><input id="rs-seniorId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('rs-seniorId','seniorId')">↓ from context</span></div>
+    <button class="btn danger" onclick="doRemoveSenior()">Send Request</button>
+    <div class="response-box" id="res-removeSenior" style="display:none"></div>
+  </div>
+
+  <!-- ════════════════════════════ CARETAKERS ═════════════════════════════════ -->
+
+  <div class="panel" id="panel-getCaretakers">
+    <div class="panel-header"><div class="panel-title">List Available Caretakers</div><div class="panel-path">GET /caretakers</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/caretakers/getAvailableCaretakers.ts</code> + <code>CaretakerService</code></div>
+    <div class="form-row"><label>Service Type <span style="color:var(--red)">*</span></label><select id="gc-serviceType"><option value="home_care">home_care</option><option value="medical_escort">medical_escort</option><option value="outings">outings</option></select></div>
+    <div class="row-2">
+      <div class="form-row"><label>Start Date/Time <span style="color:var(--red)">*</span></label><input id="gc-startDate" type="datetime-local" /></div>
+      <div class="form-row"><label>End Date/Time <span style="color:var(--red)">*</span></label><input id="gc-endDate" type="datetime-local" /></div>
+    </div>
+    <div class="row-2">
+      <div class="form-row"><label>Location <span style="color:var(--muted)">(optional)</span></label><input id="gc-location" type="text" placeholder="Address or lat,lng" /></div>
+      <div class="form-row"><label>Specialization <span style="color:var(--muted)">(optional)</span></label><input id="gc-specialization" type="text" placeholder="Geriatric Care" /></div>
+    </div>
+    <div class="row-3">
+      <div class="form-row"><label>Min Rating</label><input id="gc-minRating" type="number" min="0" max="5" step="0.1" placeholder="0–5" /></div>
+      <div class="form-row"><label>Min Experience (yrs)</label><input id="gc-minExp" type="number" min="0" placeholder="years" /></div>
+      <div class="form-row"><label>Max Hourly Rate (THB)</label><input id="gc-maxRate" type="number" min="0" placeholder="THB" /></div>
+    </div>
+    <div class="form-row"><label>Sort By</label><select id="gc-sortBy"><option value="">recommended (default)</option><option value="rating">rating</option><option value="experience">experience</option><option value="price_asc">price_asc</option><option value="price_desc">price_desc</option></select></div>
+    <button class="btn" onclick="doGetCaretakers()">Send Request</button>
+    <div class="response-box" id="res-getCaretakers" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-getCaretakerById">
+    <div class="panel-header"><div class="panel-title">Get Caretaker by ID</div><div class="panel-path">GET /caretakers/:caretakerId</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/caretakers/getCaretakerById.ts</code></div>
+    <div class="form-row"><label>Caretaker ID</label><input id="gcb-caretakerId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('gcb-caretakerId','caretakerId')">↓ from context</span></div>
+    <button class="btn" onclick="doGetCaretakerById()">Send Request</button>
+    <div class="response-box" id="res-getCaretakerById" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-updateCaretakerProfile">
+    <div class="panel-header"><div class="panel-title">Update Caretaker Profile</div><div class="panel-path">PUT /caretakers/profile · role: caretaker</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/caretakers/updateCaretakerProfile.ts</code></div>
+    <div class="form-row"><label>Bio <span style="color:var(--muted)">(optional)</span></label><textarea id="ucp-bio" placeholder="Updated bio..."></textarea></div>
+    <div class="row-2">
+      <div class="form-row"><label>Specialization</label><input id="ucp-specialization" type="text" placeholder="Geriatric Care, Post-Surgical" /></div>
+      <div class="form-row"><label>Hourly Rate (THB)</label><input id="ucp-rate" type="number" placeholder="300" /></div>
+    </div>
+    <div class="row-2">
+      <div class="form-row"><label>Experience (years)</label><input id="ucp-exp" type="number" placeholder="8" /></div>
+      <div class="form-row"><label>Contact Info</label><input id="ucp-contact" type="text" placeholder="+66812345678" /></div>
+    </div>
+    <button class="btn" onclick="doUpdateCaretakerProfile()">Send Request</button>
+    <div class="response-box" id="res-updateCaretakerProfile" style="display:none"></div>
+  </div>
+
+  <!-- ════════════════════════════ BOOKINGS ═══════════════════════════════════ -->
+
+  <div class="panel" id="panel-getBookings">
+    <div class="panel-header"><div class="panel-title">List Bookings</div><div class="panel-path">GET /bookings</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/bookings/getBookings.ts</code> + <code>BookingService</code></div>
+    <div class="row-2">
+      <div class="form-row"><label>Status filter <span style="color:var(--muted)">(optional)</span></label><select id="gb-status"><option value="">— all —</option><option value="created">created</option><option value="confirmed">confirmed</option><option value="completed">completed</option><option value="cancelled">cancelled</option></select></div>
+      <div class="form-row"><label>Upcoming only</label><select id="gb-upcoming"><option value="">— no filter —</option><option value="true">true</option></select></div>
+    </div>
+    <button class="btn" onclick="doGetBookings()">Send Request</button>
+    <div class="response-box" id="res-getBookings" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-createBooking">
+    <div class="panel-header"><div class="panel-title">Create Booking</div><div class="panel-path">POST /bookings · role: adult_child</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/bookings/createBooking.ts</code></div>
+    <div class="row-2">
+      <div class="form-row"><label>Senior ID <span style="color:var(--red)">*</span></label><input id="cb-seniorId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('cb-seniorId','seniorId')">↓ from context</span></div>
+      <div class="form-row"><label>Caretaker ID <span style="color:var(--red)">*</span></label><input id="cb-caretakerId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('cb-caretakerId','caretakerId')">↓ from context</span></div>
+    </div>
+    <div class="row-2">
+      <div class="form-row"><label>Service Type <span style="color:var(--red)">*</span></label><select id="cb-serviceType"><option value="home_care">home_care</option><option value="medical_escort">medical_escort</option><option value="outings">outings</option></select></div>
+      <div class="form-row"><label>Payment Method <span style="color:var(--red)">*</span></label><select id="cb-paymentMethod"><option value="qr_promptpay">qr_promptpay</option><option value="credit_card">credit_card</option></select></div>
+    </div>
+    <div class="row-2">
+      <div class="form-row"><label>Start Date/Time <span style="color:var(--red)">*</span></label><input id="cb-startDate" type="datetime-local" /></div>
+      <div class="form-row"><label>End Date/Time <span style="color:var(--red)">*</span></label><input id="cb-endDate" type="datetime-local" /></div>
+    </div>
+    <div class="form-row"><label>Location <span style="color:var(--red)">*</span></label><input id="cb-location" type="text" placeholder="123 Health Ave, Bangkok" /></div>
+    <div class="form-row"><label>Note <span style="color:var(--muted)">(optional)</span></label><textarea id="cb-note" placeholder="Special instructions for the caretaker..."></textarea></div>
+    <button class="btn" onclick="doCreateBooking()">Send Request</button>
+    <div class="response-box" id="res-createBooking" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-getBookingById">
+    <div class="panel-header"><div class="panel-title">Get Booking</div><div class="panel-path">GET /bookings/:bookingId</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/bookings/getBookingById.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="gbb-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('gbb-bookingId','bookingId')">↓ from context</span></div>
+    <button class="btn" onclick="doGetBookingById()">Send Request</button>
+    <div class="response-box" id="res-getBookingById" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-updateBooking">
+    <div class="panel-header"><div class="panel-title">Update Booking</div><div class="panel-path">PUT /bookings/:bookingId · only when status=created</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/bookings/updateBooking.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="ub-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('ub-bookingId','bookingId')">↓ from context</span></div>
+    <div class="row-2">
+      <div class="form-row"><label>New Start Date/Time</label><input id="ub-startDate" type="datetime-local" /></div>
+      <div class="form-row"><label>New End Date/Time</label><input id="ub-endDate" type="datetime-local" /></div>
+    </div>
+    <div class="form-row"><label>Location</label><input id="ub-location" type="text" placeholder="456 New Address..." /></div>
+    <div class="form-row"><label>Note</label><textarea id="ub-note" placeholder="Updated instructions..."></textarea></div>
+    <button class="btn" onclick="doUpdateBooking()">Send Request</button>
+    <div class="response-box" id="res-updateBooking" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-cancelBooking">
+    <div class="panel-header"><div class="panel-title">Cancel Booking</div><div class="panel-path">DELETE /bookings/:bookingId · role: adult_child</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/bookings/cancelBooking.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="canc-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('canc-bookingId','bookingId')">↓ from context</span></div>
+    <button class="btn danger" onclick="doCancelBooking()">Send Request</button>
+    <div class="response-box" id="res-cancelBooking" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-confirmBooking">
+    <div class="panel-header"><div class="panel-title">Confirm Booking</div><div class="panel-path">POST /bookings/:bookingId/confirm · role: caretaker</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/bookings/confirmBooking.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="conf-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('conf-bookingId','bookingId')">↓ from context</span></div>
+    <button class="btn" onclick="doConfirmBooking()">Send Request</button>
+    <div class="response-box" id="res-confirmBooking" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-endSession">
+    <div class="panel-header"><div class="panel-title">End Session</div><div class="panel-path">POST /bookings/:bookingId/end · role: caretaker</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/bookings/endSession.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="es-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('es-bookingId','bookingId')">↓ from context</span></div>
+    <button class="btn" onclick="doEndSession()">Send Request</button>
+    <div class="response-box" id="res-endSession" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-submitReview">
+    <div class="panel-header"><div class="panel-title">Submit Review</div><div class="panel-path">POST /bookings/:bookingId/review · role: adult_child · booking must be completed</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/bookings/submitReview.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="sr-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('sr-bookingId','bookingId')">↓ from context</span></div>
+    <div class="row-2">
+      <div class="form-row"><label>Rating (1–5) <span style="color:var(--red)">*</span></label><input id="sr-rating" type="number" min="1" max="5" placeholder="5" /></div>
+      <div class="form-row"><label>Review Type <span style="color:var(--red)">*</span></label><select id="sr-reviewType"><option value="caretaker">caretaker</option><option value="platform">platform</option></select></div>
+    </div>
+    <div class="form-row"><label>Comment <span style="color:var(--muted)">(optional)</span></label><textarea id="sr-comment" placeholder="Sarah was incredibly attentive..."></textarea></div>
+    <button class="btn" onclick="doSubmitReview()">Send Request</button>
+    <div class="response-box" id="res-submitReview" style="display:none"></div>
+  </div>
+
+  <!-- ════════════════════════════ PAYMENTS ═══════════════════════════════════ -->
+
+  <div class="panel" id="panel-initiatePayment">
+    <div class="panel-header"><div class="panel-title">Initiate Payment</div><div class="panel-path">POST /bookings/:bookingId/payment · role: adult_child</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/payments/initiatePayment.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="ip-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('ip-bookingId','bookingId')">↓ from context</span></div>
+    <div class="row-3">
+      <div class="form-row"><label>Method <span style="color:var(--red)">*</span></label><select id="ip-method"><option value="qr_promptpay">qr_promptpay</option><option value="credit_card">credit_card</option></select></div>
+      <div class="form-row"><label>Amount <span style="color:var(--red)">*</span></label><input id="ip-amount" type="number" min="0" step="0.01" placeholder="350.00" /></div>
+      <div class="form-row"><label>Currency <span style="color:var(--red)">*</span></label><input id="ip-currency" type="text" value="THB" placeholder="THB" /></div>
+    </div>
+    <button class="btn" onclick="doInitiatePayment()">Send Request</button>
+    <div class="response-box" id="res-initiatePayment" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-getPaymentStatus">
+    <div class="panel-header"><div class="panel-title">Get Payment Status</div><div class="panel-path">GET /bookings/:bookingId/payment</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/payments/getPaymentStatus.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="gps-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('gps-bookingId','bookingId')">↓ from context</span></div>
+    <button class="btn" onclick="doGetPaymentStatus()">Send Request</button>
+    <div class="response-box" id="res-getPaymentStatus" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-paymentWebhook">
+    <div class="panel-header"><div class="panel-title">Payment Webhook</div><div class="panel-path">POST /payments/webhook · auth: X-Webhook-Secret header</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/payments/paymentWebhook.ts</code></div>
+    <div class="form-row"><label>X-Webhook-Secret</label><input id="pw-secret" type="text" placeholder="webhook-secret" /></div>
+    <div class="form-row"><label>Payload (raw JSON)</label><textarea id="pw-payload" placeholder='{"event":"payment.success","bookingId":"BK-8829"}'></textarea></div>
+    <button class="btn" onclick="doPaymentWebhook()">Send Request</button>
+    <div class="response-box" id="res-paymentWebhook" style="display:none"></div>
+  </div>
+
+  <!-- ═══════════════════════════ STATUS LOGS ═════════════════════════════════ -->
+
+  <div class="panel" id="panel-getStatusLogs">
+    <div class="panel-header"><div class="panel-title">Get Status Logs</div><div class="panel-path">GET /bookings/:bookingId/status</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/statusLogs/getStatusLogs.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="gsl-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('gsl-bookingId','bookingId')">↓ from context</span></div>
+    <button class="btn" onclick="doGetStatusLogs()">Send Request</button>
+    <div class="response-box" id="res-getStatusLogs" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-createStatusLog">
+    <div class="panel-header"><div class="panel-title">Create Status Log</div><div class="panel-path">POST /bookings/:bookingId/status · role: caretaker</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/statusLogs/createStatusLog.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="csl-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('csl-bookingId','bookingId')">↓ from context</span></div>
+    <div class="form-row"><label>Status Type <span style="color:var(--red)">*</span></label>
+      <select id="csl-statusType">
+        <option value="driving_to_pickup">driving_to_pickup</option><option value="at_pickup">at_pickup</option>
+        <option value="driving_to_hospital">driving_to_hospital</option><option value="at_hospital">at_hospital</option>
+        <option value="driving_to_outing">driving_to_outing</option><option value="at_outing">at_outing</option>
+        <option value="driving_to_location">driving_to_location</option><option value="at_location">at_location</option>
+        <option value="in_session">in_session</option><option value="driving_home">driving_home</option><option value="completed">completed</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Notes <span style="color:var(--muted)">(optional)</span></label><textarea id="csl-notes" placeholder="On the way, ETA 10 minutes..."></textarea></div>
+    <div class="form-row"><label>Photo URL <span style="color:var(--muted)">(optional)</span></label><input id="csl-photoUrl" type="text" placeholder="https://cdn.oonjai.com/photos/..." /></div>
+    <button class="btn" onclick="doCreateStatusLog()">Send Request</button>
+    <div class="response-box" id="res-createStatusLog" style="display:none"></div>
+  </div>
+
+  <!-- ═══════════════════════════ INCIDENTS ═══════════════════════════════════ -->
+
+  <div class="panel" id="panel-getIncidentLogs">
+    <div class="panel-header"><div class="panel-title">Get Incident Logs</div><div class="panel-path">GET /bookings/:bookingId/incidents</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/incidentLogs/getIncidentLogs.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="gil-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('gil-bookingId','bookingId')">↓ from context</span></div>
+    <button class="btn" onclick="doGetIncidentLogs()">Send Request</button>
+    <div class="response-box" id="res-getIncidentLogs" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-createIncidentLog">
+    <div class="panel-header"><div class="panel-title">Create Incident Log</div><div class="panel-path">POST /bookings/:bookingId/incidents · role: caretaker</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/incidentLogs/createIncidentLog.ts</code></div>
+    <div class="form-row"><label>Booking ID</label><input id="cil-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('cil-bookingId','bookingId')">↓ from context</span></div>
+    <div class="form-row"><label>Senior ID <span style="color:var(--red)">*</span></label><input id="cil-seniorId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('cil-seniorId','seniorId')">↓ from context</span></div>
+    <div class="form-row"><label>Incident Type <span style="color:var(--red)">*</span></label><select id="cil-incidentType"><option value="fall">fall</option><option value="medication_missed">medication_missed</option><option value="medical_emergency">medical_emergency</option><option value="other">other</option></select></div>
+    <div class="form-row"><label>Detail <span style="color:var(--red)">*</span></label><textarea id="cil-detail" placeholder="Minor fall in bathroom. No injuries. Adult child notified."></textarea></div>
+    <button class="btn" onclick="doCreateIncidentLog()">Send Request</button>
+    <div class="response-box" id="res-createIncidentLog" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-updateIncidentLog">
+    <div class="panel-header"><div class="panel-title">Update Incident Log</div><div class="panel-path">PUT /bookings/:bookingId/incidents/:logId · role: caretaker or admin</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/incidentLogs/updateIncidentLog.ts</code></div>
+    <div class="row-2">
+      <div class="form-row"><label>Booking ID</label><input id="uil-bookingId" type="text" placeholder="BK-8829" /><span class="ctx-pull" onclick="pullCtx('uil-bookingId','bookingId')">↓ from context</span></div>
+      <div class="form-row"><label>Log ID</label><input id="uil-logId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('uil-logId','logId')">↓ from context</span></div>
+    </div>
+    <div class="row-2">
+      <div class="form-row"><label>Status <span style="color:var(--red)">*</span></label><select id="uil-status"><option value="noted">noted</option><option value="resolved">resolved</option></select></div>
+      <div class="form-row"><label>Detail <span style="color:var(--muted)">(optional)</span></label><input id="uil-detail" type="text" placeholder="Follow-up detail..." /></div>
+    </div>
+    <button class="btn" onclick="doUpdateIncidentLog()">Send Request</button>
+    <div class="response-box" id="res-updateIncidentLog" style="display:none"></div>
+  </div>
+
+  <!-- ════════════════════════ VERIFICATIONS ══════════════════════════════════ -->
+
+  <div class="panel" id="panel-createVerification">
+    <div class="panel-header"><div class="panel-title">Submit Verification Doc</div><div class="panel-path">POST /verifications · role: caretaker</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/verifications/createVerification.ts</code></div>
+    <div class="row-2">
+      <div class="form-row"><label>Doc Type <span style="color:var(--red)">*</span></label><select id="cv-docType"><option value="nursing_license">nursing_license</option><option value="national_id">national_id</option><option value="background_check">background_check</option></select></div>
+      <div class="form-row"><label>Uploader Type</label><select id="cv-uploaderType"><option value="caretaker">caretaker</option><option value="admin">admin</option></select></div>
+    </div>
+    <div class="form-row"><label>Doc File Ref (URL) <span style="color:var(--red)">*</span></label><input id="cv-docFileRef" type="text" placeholder="https://cdn.oonjai.com/docs/..." /></div>
+    <button class="btn" onclick="doCreateVerification()">Send Request</button>
+    <div class="response-box" id="res-createVerification" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-getPendingVerifications">
+    <div class="panel-header"><div class="panel-title">Pending Verifications</div><div class="panel-path">GET /verifications/pending · role: admin</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/verifications/getPendingVerifications.ts</code></div>
+    <button class="btn" onclick="doGetPendingVerifications()">Send Request</button>
+    <div class="response-box" id="res-getPendingVerifications" style="display:none"></div>
+  </div>
+
+  <div class="panel" id="panel-updateVerification">
+    <div class="panel-header"><div class="panel-title">Approve / Reject Verification</div><div class="panel-path">PUT /verifications/:verificationId · role: admin</div></div>
+    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/verifications/updateVerification.ts</code></div>
+    <div class="form-row"><label>Verification ID</label><input id="uv-verificationId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('uv-verificationId','verificationId')">↓ from context</span></div>
+    <div class="row-2">
+      <div class="form-row"><label>Status <span style="color:var(--red)">*</span></label><select id="uv-status"><option value="verified">verified</option><option value="rejected">rejected</option></select></div>
+      <div class="form-row"><label>Reason <span style="color:var(--muted)">(if rejected)</span></label><input id="uv-reason" type="text" placeholder="Document is expired. Please re-upload." /></div>
+    </div>
+    <button class="btn" onclick="doUpdateVerification()">Send Request</button>
+    <div class="response-box" id="res-updateVerification" style="display:none"></div>
+  </div>
+
+</main>
+
+<script>
+  // ── State ─────────────────────────────────────────────────────────────────
+  let accessToken     = localStorage.getItem("oonjai_access")  ?? ""
+  let refreshTokenVal = localStorage.getItem("oonjai_refresh") ?? ""
+
+  const CTX_KEYS = ["seniorId","caretakerId","bookingId","logId","verificationId"]
+  const ctx = Object.fromEntries(CTX_KEYS.map(k => [k, localStorage.getItem("oonjai_ctx_"+k) ?? ""]))
+
+  function saveCtx(key, val) {
+    ctx[key] = val
+    localStorage.setItem("oonjai_ctx_"+key, val)
+  }
+  function pullCtx(inputId, key) {
+    const el = document.getElementById(inputId)
+    if (el) el.value = ctx[key] || ""
+  }
+  function loadCtxInputs() {
+    CTX_KEYS.forEach(k => { const el = document.getElementById("ctx-"+k); if (el) el.value = ctx[k] })
+  }
+
+  // ── Tokens ────────────────────────────────────────────────────────────────
+  function saveTokens(access, refresh) {
+    accessToken = access; refreshTokenVal = refresh
+    localStorage.setItem("oonjai_access", access)
+    localStorage.setItem("oonjai_refresh", refresh)
+    syncInputs()
+  }
+  function clearTokens() {
+    accessToken = ""; refreshTokenVal = ""
+    localStorage.removeItem("oonjai_access"); localStorage.removeItem("oonjai_refresh")
+    syncInputs(); updateSessionBadge(null)
+  }
+  function syncInputs() {
+    setVal("session-token", accessToken)
+    setVal("logout-token",  accessToken)
+    setVal("refresh-token", refreshTokenVal)
+    updateTokenHint("session-token","session-token-hint")
+  }
+  function setVal(id, val) { const el = document.getElementById(id); if (el && val) el.value = val }
+
+  // ── JWT decode ────────────────────────────────────────────────────────────
+  function decodeJwtPayload(token) {
+    try { return JSON.parse(atob(token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))) } catch { return null }
+  }
+  function updateTokenHint(inputId, hintId) {
+    const val = document.getElementById(inputId)?.value ?? ""
+    const hint = document.getElementById(hintId)
+    if (!hint) return
+    if (!val) { hint.textContent = "Auto-filled after login."; hint.style.color = ""; return }
+    const p = decodeJwtPayload(val)
+    if (!p) { hint.textContent = "⚠️  Not a valid JWT"; hint.style.color = "var(--red)"; return }
+    const expired = p.exp < Math.floor(Date.now()/1000) ? " · EXPIRED" : ""
+    hint.textContent = `type: ${p.type} · exp: ${new Date(p.exp*1000).toLocaleTimeString()}${expired}`
+    hint.style.color = p.type === "access" ? "var(--green)" : "var(--yellow)"
+  }
+
+  // ── Nav ───────────────────────────────────────────────────────────────────
+  function show(id, e) {
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"))
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"))
+    document.getElementById("panel-"+id).classList.add("active")
+    if (e) e.currentTarget.classList.add("active")
+    syncInputs()
+  }
+  function toggleSection(toggle, bodyId) {
+    toggle.classList.toggle("open")
+    document.getElementById(bodyId).classList.toggle("open")
+  }
+
+  // ── Base URL ──────────────────────────────────────────────────────────────
+  function baseUrl() { return document.getElementById("base-url-input").value.replace(/\/$/,"") }
+
+  // ── Ping ──────────────────────────────────────────────────────────────────
+  async function ping() {
+    const dot = document.getElementById("status-dot")
+    try { await fetch(baseUrl()+"/auth/session",{method:"GET"}); dot.className="status-dot online" }
+    catch { dot.className="status-dot offline" }
+  }
+  setInterval(ping,5000); ping()
+
+  // ── Response renderer ─────────────────────────────────────────────────────
+  function renderResponse(boxId, status, data) {
+    const box = document.getElementById(boxId)
+    box.style.display = "block"
+    const cls = status>=200&&status<300?"ok":status>=400&&status<500?"warn":"err"
+    // Extract saveable IDs from response
+    const ids = extractIds(data)
+    const saveBtns = ids.map(({key,val}) =>
+            `<button class="save-id-btn" onclick="saveIdToCtx('${key}','${val}')">Save ${key}</button>`
+    ).join("")
+    box.innerHTML = `
+      <div class="response-header">
+        <span class="status-code ${cls}">${status||"ERR"}</span>
+        <span>${statusText(status)}</span>
+        <div class="response-actions">${saveBtns}</div>
+      </div>
+      <div class="response-body">${JSON.stringify(data,null,2)}</div>`
+  }
+  function extractIds(data) {
+    if (!data || typeof data !== "object") return []
+    const out = []
+    const map = {id:"seniorId", seniorId:"seniorId", caretakerId:"caretakerId", bookingId:"bookingId", verificationId:"verificationId"}
+    // Top-level id — guess context key from existing fields
+    if (data.id) {
+      if (data.adultChildId || data.mobilityLevel) out.push({key:"seniorId", val:data.id})
+      else if (data.hourlyRate || data.specialization) out.push({key:"caretakerId", val:data.id})
+      else if (data.serviceType || data.caretakerId) out.push({key:"bookingId", val:data.id})
+      else if (data.docType) out.push({key:"verificationId", val:data.id})
+    }
+    if (data.bookingId) out.push({key:"bookingId", val:data.bookingId})
+    if (data.seniorId && !out.find(x=>x.key==="seniorId")) out.push({key:"seniorId", val:data.seniorId})
+    if (data.caretakerId && !out.find(x=>x.key==="caretakerId")) out.push({key:"caretakerId", val:data.caretakerId})
+    return out
+  }
+  function saveIdToCtx(key, val) {
+    saveCtx(key, val); loadCtxInputs()
+    const body = document.getElementById("workspace-body")
+    if (!body.classList.contains("open")) {
+      const toggle = body.previousElementSibling
+      toggle.classList.add("open"); body.classList.add("open")
+    }
+  }
+  function statusText(s) {
+    return {200:"OK",201:"Created",204:"No Content",400:"Bad Request",401:"Unauthorized",403:"Forbidden",404:"Not Found",409:"Conflict",500:"Internal Server Error"}[s]??""
+  }
+  function updateSessionBadge(user) {
+    const el = document.getElementById("session-user")
+    if (user) { el.textContent=`${user.firstname} ${user.lastname} (${user.role})`; el.className="badge-user" }
+    else { el.textContent="— not logged in —"; el.className="badge-user empty" }
+  }
+
+  // ── API helper ────────────────────────────────────────────────────────────
+  async function api(method, path, body, token, extra) {
+    const headers = {"Content-Type":"application/json"}
+    if (token) headers["Authorization"] = "Bearer "+token
+    if (extra) Object.assign(headers, extra)
+    const res = await fetch(baseUrl()+path, {method, headers, body: body?JSON.stringify(body):undefined})
+    let data = null; const text = await res.text()
+    try { data = JSON.parse(text) } catch { data = text||null }
+    return {status:res.status, data}
+  }
+
+  // ═══════════════════════════════ AUTH ════════════════════════════════════
+  async function doLogin() {
+    const email = document.getElementById("login-email").value.trim()
+    if (!email) return alert("Email is required")
+    const oauthToken = document.getElementById("login-oauth").value.trim() || undefined
+    const {status, data} = await api("POST", "/auth/login", {email, ...(oauthToken&&{oauthToken})})
+    renderResponse("res-login", status, data)
+    if (status===200 && data?.accessToken) {
+      const ap = decodeJwtPayload(data.accessToken)
+      if (ap?.type!=="access") {
+        renderResponse("res-login", 0, {error:`accessToken has type="${ap?.type}" — expected "access". Server bug.`})
+        return
+      }
+      saveTokens(data.accessToken, data.refreshToken)
+      const s = await api("GET", "/auth/session", null, data.accessToken)
+      if (s.status===200 && s.data?.user) updateSessionBadge(s.data.user)
+    }
+  }
+  async function doRegister() {
+    const body = {email:document.getElementById("reg-email").value.trim(), firstname:document.getElementById("reg-firstname").value.trim(), lastname:document.getElementById("reg-lastname").value.trim(), role:document.getElementById("reg-role").value}
+    const oauth = document.getElementById("reg-oauth").value.trim()
+    if (oauth) body.oauthToken = oauth
+    if (!body.email||!body.firstname||!body.lastname) return alert("Email, first name, last name required")
+    const {status, data} = await api("POST", "/auth/register", body)
+    renderResponse("res-register", status, data)
+  }
+  async function doRefresh() {
+    const token = document.getElementById("refresh-token").value.trim()||refreshTokenVal
+    if (!token) return alert("No refresh token")
+    const {status, data} = await api("POST", "/auth/refresh", {refreshToken:token})
+    renderResponse("res-refresh", status, data)
+    if (status===200 && data?.accessToken) {
+      if (decodeJwtPayload(data.accessToken)?.type!=="access") console.error("⚠️ refresh response wrong type")
+      saveTokens(data.accessToken, data.refreshToken)
+    }
+  }
+  async function doLogout() {
+    const token = document.getElementById("logout-token").value.trim()||accessToken
+    if (!token) return alert("No token")
+    const {status, data} = await api("POST", "/auth/logout", null, token)
+    renderResponse("res-logout", status, data)
+    if (status===204||status===200) clearTokens()
+  }
+  async function doGetSession() {
+    const token = document.getElementById("session-token").value.trim()||accessToken
+    const {status, data} = await api("GET", "/auth/session", null, token)
+    renderResponse("res-session", status, data)
+    if (status===200 && data?.user) updateSessionBadge(data.user)
+  }
+
+  // ═══════════════════════════════ USERS ═══════════════════════════════════
+  async function doGetMe() {
+    const {status, data} = await api("GET", "/users/me", null, accessToken)
+    renderResponse("res-getMe", status, data)
+  }
+  async function doUpdateUser() {
+    const body = {}
+    const fn=document.getElementById("upd-firstname").value.trim(), ln=document.getElementById("upd-lastname").value.trim(), em=document.getElementById("upd-email").value.trim()
+    if (fn) body.firstname=fn; if (ln) body.lastname=ln; if (em) body.email=em
+    const {status, data} = await api("PUT", "/users/update", body, accessToken)
+    renderResponse("res-updateUser", status, data)
+  }
+
+  // ═══════════════════════════════ SENIORS ═════════════════════════════════
+  async function doAddSenior() {
+    const body = {fullname:document.getElementById("as-fullname").value.trim(), dateOfBirth:document.getElementById("as-dob").value.trim(), mobilityLevel:document.getElementById("as-mobility").value, healthNote:document.getElementById("as-health").value.trim()}
+    if (!body.fullname||!body.dateOfBirth||!body.healthNote) return alert("All fields required")
+    const {status, data} = await api("POST", "/users/seniors", body, accessToken)
+    renderResponse("res-addSenior", status, data)
+  }
+  async function doGetSeniors() {
+    const {status, data} = await api("GET", "/users/seniors", null, accessToken)
+    renderResponse("res-getSeniors", status, data)
+  }
+  async function doGetSeniorById() {
+    const id = document.getElementById("gsb-seniorId").value.trim()
+    if (!id) return alert("Senior ID required")
+    const {status, data} = await api("GET", `/users/seniors/${id}`, null, accessToken)
+    renderResponse("res-getSeniorById", status, data)
+  }
+  async function doRemoveSenior() {
+    const id = document.getElementById("rs-seniorId").value.trim()
+    if (!id) return alert("Senior ID required")
+    const {status, data} = await api("DELETE", `/users/seniors/${id}`, null, accessToken)
+    renderResponse("res-removeSenior", status, data)
+  }
+
+  // ══════════════════════════════ CARETAKERS ═══════════════════════════════
+  async function doGetCaretakers() {
+    const st=document.getElementById("gc-startDate").value, et=document.getElementById("gc-endDate").value
+    if (!st||!et) return alert("startDate and endDate required")
+    const p = new URLSearchParams({serviceType:document.getElementById("gc-serviceType").value, startDate:st, endDate:et})
+    const loc=document.getElementById("gc-location").value.trim(), spec=document.getElementById("gc-specialization").value.trim()
+    const minR=document.getElementById("gc-minRating").value, minE=document.getElementById("gc-minExp").value, maxP=document.getElementById("gc-maxRate").value, sort=document.getElementById("gc-sortBy").value
+    if (loc) p.set("location",loc); if (spec) p.set("specialization",spec)
+    if (minR) p.set("minRating",minR); if (minE) p.set("minExperience",minE); if (maxP) p.set("maxHourlyRate",maxP); if (sort) p.set("sortBy",sort)
+    const {status, data} = await api("GET", `/caretakers?${p}`, null, accessToken)
+    renderResponse("res-getCaretakers", status, data)
+  }
+  async function doGetCaretakerById() {
+    const id=document.getElementById("gcb-caretakerId").value.trim()
+    if (!id) return alert("Caretaker ID required")
+    const {status, data} = await api("GET", `/caretakers/${id}`, null, accessToken)
+    renderResponse("res-getCaretakerById", status, data)
+  }
+  async function doUpdateCaretakerProfile() {
+    const body = {}
+    const bio=document.getElementById("ucp-bio").value.trim(), spec=document.getElementById("ucp-specialization").value.trim(), rate=document.getElementById("ucp-rate").value, exp=document.getElementById("ucp-exp").value, cont=document.getElementById("ucp-contact").value.trim()
+    if (bio) body.bio=bio; if (spec) body.specialization=spec; if (rate) body.hourlyRate=Number(rate); if (exp) body.experience=Number(exp); if (cont) body.contactInfo=cont
+    const {status, data} = await api("PUT", "/caretakers/profile", body, accessToken)
+    renderResponse("res-updateCaretakerProfile", status, data)
+  }
+
+  // ════════════════════════════════ BOOKINGS ════════════════════════════════
+  async function doGetBookings() {
+    const p=new URLSearchParams(), st=document.getElementById("gb-status").value, up=document.getElementById("gb-upcoming").value
+    if (st) p.set("status",st); if (up) p.set("upcoming",up)
+    const qs=p.toString()?"?"+p:""
+    const {status, data} = await api("GET", `/bookings${qs}`, null, accessToken)
+    renderResponse("res-getBookings", status, data)
+  }
+  async function doCreateBooking() {
+    const body = {seniorId:document.getElementById("cb-seniorId").value.trim(), caretakerId:document.getElementById("cb-caretakerId").value.trim(), serviceType:document.getElementById("cb-serviceType").value, paymentMethod:document.getElementById("cb-paymentMethod").value, startDate:document.getElementById("cb-startDate").value, endDate:document.getElementById("cb-endDate").value, location:document.getElementById("cb-location").value.trim()}
+    const note=document.getElementById("cb-note").value.trim(); if (note) body.note=note
+    if (!body.seniorId||!body.caretakerId||!body.startDate||!body.endDate||!body.location) return alert("seniorId, caretakerId, dates, location required")
+    const {status, data} = await api("POST", "/bookings", body, accessToken)
+    renderResponse("res-createBooking", status, data)
+  }
+  async function doGetBookingById() {
+    const id=document.getElementById("gbb-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const {status, data} = await api("GET", `/bookings/${id}`, null, accessToken)
+    renderResponse("res-getBookingById", status, data)
+  }
+  async function doUpdateBooking() {
+    const id=document.getElementById("ub-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const body={}, sd=document.getElementById("ub-startDate").value, ed=document.getElementById("ub-endDate").value, loc=document.getElementById("ub-location").value.trim(), note=document.getElementById("ub-note").value.trim()
+    if (sd) body.startDate=sd; if (ed) body.endDate=ed; if (loc) body.location=loc; if (note) body.note=note
+    const {status, data} = await api("PUT", `/bookings/${id}`, body, accessToken)
+    renderResponse("res-updateBooking", status, data)
+  }
+  async function doCancelBooking() {
+    const id=document.getElementById("canc-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const {status, data} = await api("DELETE", `/bookings/${id}`, null, accessToken)
+    renderResponse("res-cancelBooking", status, data)
+  }
+  async function doConfirmBooking() {
+    const id=document.getElementById("conf-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const {status, data} = await api("POST", `/bookings/${id}/confirm`, null, accessToken)
+    renderResponse("res-confirmBooking", status, data)
+  }
+  async function doEndSession() {
+    const id=document.getElementById("es-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const {status, data} = await api("POST", `/bookings/${id}/end`, null, accessToken)
+    renderResponse("res-endSession", status, data)
+  }
+  async function doSubmitReview() {
+    const id=document.getElementById("sr-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const rating=Number(document.getElementById("sr-rating").value); if (!rating) return alert("Rating required")
+    const body={rating, reviewType:document.getElementById("sr-reviewType").value}
+    const comment=document.getElementById("sr-comment").value.trim(); if (comment) body.comment=comment
+    const {status, data} = await api("POST", `/bookings/${id}/review`, body, accessToken)
+    renderResponse("res-submitReview", status, data)
+  }
+
+  // ═══════════════════════════════ PAYMENTS ════════════════════════════════
+  async function doInitiatePayment() {
+    const id=document.getElementById("ip-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const amount=Number(document.getElementById("ip-amount").value), currency=document.getElementById("ip-currency").value.trim()
+    if (!amount||!currency) return alert("Amount and currency required")
+    const {status, data} = await api("POST", `/bookings/${id}/payment`, {method:document.getElementById("ip-method").value,amount,currency}, accessToken)
+    renderResponse("res-initiatePayment", status, data)
+  }
+  async function doGetPaymentStatus() {
+    const id=document.getElementById("gps-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const {status, data} = await api("GET", `/bookings/${id}/payment`, null, accessToken)
+    renderResponse("res-getPaymentStatus", status, data)
+  }
+  async function doPaymentWebhook() {
+    const secret=document.getElementById("pw-secret").value.trim(), raw=document.getElementById("pw-payload").value.trim()
+    let body={}; try { if (raw) body=JSON.parse(raw) } catch { return alert("Invalid JSON") }
+    const {status, data} = await api("POST", "/payments/webhook", body, null, secret?{"X-Webhook-Secret":secret}:{})
+    renderResponse("res-paymentWebhook", status, data)
+  }
+
+  // ════════════════════════════ STATUS LOGS ════════════════════════════════
+  async function doGetStatusLogs() {
+    const id=document.getElementById("gsl-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const {status, data} = await api("GET", `/bookings/${id}/status`, null, accessToken)
+    renderResponse("res-getStatusLogs", status, data)
+  }
+  async function doCreateStatusLog() {
+    const id=document.getElementById("csl-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const body={statusType:document.getElementById("csl-statusType").value}
+    const notes=document.getElementById("csl-notes").value.trim(), photo=document.getElementById("csl-photoUrl").value.trim()
+    if (notes) body.notes=notes; if (photo) body.photoUrl=photo
+    const {status, data} = await api("POST", `/bookings/${id}/status`, body, accessToken)
+    renderResponse("res-createStatusLog", status, data)
+  }
+
+  // ═══════════════════════════════ INCIDENTS ═══════════════════════════════
+  async function doGetIncidentLogs() {
+    const id=document.getElementById("gil-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const {status, data} = await api("GET", `/bookings/${id}/incidents`, null, accessToken)
+    renderResponse("res-getIncidentLogs", status, data)
+  }
+  async function doCreateIncidentLog() {
+    const id=document.getElementById("cil-bookingId").value.trim(); if (!id) return alert("Booking ID required")
+    const seniorId=document.getElementById("cil-seniorId").value.trim(), detail=document.getElementById("cil-detail").value.trim()
+    if (!seniorId||!detail) return alert("Senior ID and detail required")
+    const {status, data} = await api("POST", `/bookings/${id}/incidents`, {seniorId, incidentType:document.getElementById("cil-incidentType").value, detail}, accessToken)
+    renderResponse("res-createIncidentLog", status, data)
+  }
+  async function doUpdateIncidentLog() {
+    const bookingId=document.getElementById("uil-bookingId").value.trim(), logId=document.getElementById("uil-logId").value.trim()
+    if (!bookingId||!logId) return alert("Booking ID and Log ID required")
+    const body={status:document.getElementById("uil-status").value}
+    const detail=document.getElementById("uil-detail").value.trim(); if (detail) body.detail=detail
+    const {status, data} = await api("PUT", `/bookings/${bookingId}/incidents/${logId}`, body, accessToken)
+    renderResponse("res-updateIncidentLog", status, data)
+  }
+
+  // ═════════════════════════════ VERIFICATIONS ═════════════════════════════
+  async function doCreateVerification() {
+    const docFileRef=document.getElementById("cv-docFileRef").value.trim()
+    if (!docFileRef) return alert("Doc file ref required")
+    const {status, data} = await api("POST", "/verifications", {docType:document.getElementById("cv-docType").value, docFileRef, uploaderType:document.getElementById("cv-uploaderType").value}, accessToken)
+    renderResponse("res-createVerification", status, data)
+  }
+  async function doGetPendingVerifications() {
+    const {status, data} = await api("GET", "/verifications/pending", null, accessToken)
+    renderResponse("res-getPendingVerifications", status, data)
+  }
+  async function doUpdateVerification() {
+    const id=document.getElementById("uv-verificationId").value.trim(); if (!id) return alert("Verification ID required")
+    const body={status:document.getElementById("uv-status").value}
+    const reason=document.getElementById("uv-reason").value.trim(); if (reason) body.reason=reason
+    const {status, data} = await api("PUT", `/verifications/${id}`, body, accessToken)
+    renderResponse("res-updateVerification", status, data)
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadCtxInputs()
+  syncInputs()
+  if (accessToken) {
+    api("GET","/auth/session",null,accessToken).then(({status,data}) => {
+      if (status===200 && data?.user) updateSessionBadge(data.user)
+    })
+  }
+</script>
+</body>
+</html>
