@@ -27,8 +27,11 @@ export class Router {
   public async dispatch(method: string, pathname: string, ctx: HttpContext): Promise<HttpResult> {
     const incoming = pathname.split("/").filter(Boolean)
 
-    // Resolve session once per request from the Authorization header
-    const rawToken = ctx.headers["authorization"]?.replace(/^Bearer\s+/i, "") ?? null
+    // Resolve session: prefer Authorization header, fall back to access_token cookie
+    const rawToken =
+      ctx.headers["authorization"]?.replace(/^Bearer\s+/i, "") ??
+      ctx.cookies["access_token"] ??
+      null
     const session = rawToken ? await this.sessionService.resolveSession(rawToken) : null
 
     for (const route of this.routes) {

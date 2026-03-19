@@ -1,5 +1,4 @@
-import type {Endpoint} from "@http/HttpContext"
-import {redirectTo} from "@http/HttpContext"
+import {type Endpoint, internalError, redirectTo, sessionCookies, withCookies} from "@http/HttpContext"
 import type {LineAuthService} from "@serv/LineAuthService"
 import type {AuthService} from "@serv/AuthService"
 import {RoleEnum} from "@type/user"
@@ -11,15 +10,15 @@ export const lineCallback: Endpoint<[LineAuthService, AuthService]> = {
     const {code, state, error} = ctx.query
 
     if (error) {
-      return redirectTo(`/line-login.html?error=${encodeURIComponent(error)}`)
+      return internalError()
     }
 
     if (!code || !state) {
-      return redirectTo("/line-login.html?error=missing_code_or_state")
+      return internalError("missing_code_or_state")
     }
 
     if (!lineService.validateState(state)) {
-      return redirectTo("/line-login.html?error=invalid_state")
+      return internalError("invalid_state")
     }
 
     try {
@@ -45,17 +44,14 @@ export const lineCallback: Endpoint<[LineAuthService, AuthService]> = {
         sessionToken = await authService.login(lineEmail)
       }
 
-      const params = new URLSearchParams({
-        access_token: sessionToken.accessToken,
-        refresh_token: sessionToken.refreshToken,
-        display_name: profile.displayName,
-        ...(profile.pictureUrl ? {picture_url: profile.pictureUrl} : {}),
-      })
-
-      return redirectTo(`/line-login.html?${params.toString()}`)
+      // Set httpOnly session cookies and redirect to the frontend
+      const frontendUrl = process.env["FRONTEND_URL"] ?? "http://localhost:3000"
+      return withCookies(
+        sessionCookies(sessionToken.accessToken, sessionToken.refreshToken),
+        redirectTo(frontendUrl)
+      )
     } catch (err) {
-      const message = err instanceof Error ? err.message : "authentication failed"
-      return redirectTo(`/line-login.html?error=${encodeURIComponent(message)}`)
+      return internalError("auth error")
     }
   },
 }
