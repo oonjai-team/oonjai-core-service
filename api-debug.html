@@ -934,11 +934,11 @@
     }
   }
   async function doLogout() {
-    const token = document.getElementById("logout-token").value.trim()||accessToken
-    if (!token) return alert("No token")
+    const token = document.getElementById("logout-token").value.trim() || accessToken || null
+    // token may be null for cookie-only sessions — credentials:"include" sends the httpOnly cookie automatically
     const {status, data} = await api("POST", "/auth/logout", null, token)
     renderResponse("res-logout", status, data)
-    if (status===204||status===200) clearTokens()
+    if (status===204||status===200) { clearTokens(); refreshCookies() }
   }
   async function doGetSession() {
     const token = document.getElementById("session-token").value.trim()||accessToken

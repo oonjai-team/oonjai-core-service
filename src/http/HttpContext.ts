@@ -85,8 +85,8 @@ export const sessionCookies = (accessToken: string, refreshToken: string): Cooki
   },
 ]
 
-/** Expire both session cookies (used on logout). */
+/** Expire both session cookies (used on logout). Must mirror the same attributes as sessionCookies so the browser replaces them. */
 export const clearSessionCookies = (): CookieOptions[] => [
-  { name: "access_token",  value: "", maxAge: 0, path: "/" },
-  { name: "refresh_token", value: "", maxAge: 0, path: "/" },
+  { name: "access_token",  value: "", maxAge: 0, path: "/", httpOnly: true, sameSite: "Lax" },
+  { name: "refresh_token", value: "", maxAge: 0, path: "/", httpOnly: true, sameSite: "Lax" },
 ]
