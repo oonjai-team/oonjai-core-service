@@ -17,6 +17,7 @@ import {register} from "@endpoint/auth/register"
 import {logout} from "@endpoint/auth/logout"
 import {refreshToken} from "@endpoint/auth/refreshToken"
 import {getCurrentSession} from "@endpoint/auth/getCurrentSession"
+import {me} from "@endpoint/users/me"
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
 const db = new TestFSDatabase()
@@ -43,7 +44,7 @@ registry
   .register(refreshToken, [jwtSessionService])
   .register(getCurrentSession, [])   // no service — session entity comes from Router
   // Users
-  .register(updateUser, [userService])
+  .register(updateUser, [userService]).register(me, [userService])
   // Seniors
   .register(addSenior, [seniorManagementService])
   .register(getAllSeniors, [seniorManagementService])
