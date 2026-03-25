@@ -55,13 +55,18 @@ export function serveBun(router: Router, options: BunAdapterOptions = {}): void 
 
       const result = await router.dispatch(req.method, url.pathname, {query, headers, body, params: {}})
 
-      return new Response(
-        result.body !== undefined ? JSON.stringify(result.body) : null,
-        {
-          status: result.status,
-          headers: {"Content-Type": "application/json", ...cors},
-        }
-      )
+      const responseHeaders = new Headers(cors)
+      let responseBody: string | null = null
+
+      if (result.status !== 204 && result.body !== undefined) {
+        responseHeaders.set("Content-Type", "application/json")
+        responseBody = JSON.stringify(result.body)
+      }
+
+      return new Response(responseBody, {
+        status: result.status,
+        headers: responseHeaders,
+      })
     },
   })
 

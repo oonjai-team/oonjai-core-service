@@ -5,43 +5,32 @@ import type {ITestDatabase} from "./TestDatabase"
 
 export class TestFSDatabase implements ITestDatabase {
 
-  private dataMemory: Record<string, Record<string, any>> = {}
+  // No static or instance memory cache. We read/write fresh every time.
 
-  constructor() {
-    this.fsFetch()
-  }
-
-  public dump() {
-    console.log(this.dataMemory)
-  }
-
-  private fsWrite() {
-    fs.writeFileSync("database.json", JSON.stringify(this.dataMemory, null, 2))
-  }
-
-  private fsFetch() {
-    const r = fs.readFileSync("database.json")
-
-    if (r.toString()) {
-      this.dataMemory = JSON.parse(r.toString() ?? "{}")
-    }else {
-      this.dataMemory = {}
+  private getDbData(): Record<string, Record<string, any>> {
+    if (fs.existsSync("database.json")) {
+      const r = fs.readFileSync("database.json", "utf-8")
+      if (r.trim()) {
+        return JSON.parse(r)
+      }
     }
-  }
-
-  private loadCollection(name: string): Record<string, any> {
-    if (this.dataMemory[name]) {
-      return this.dataMemory[name]
-    }
-
     return {}
   }
 
+  private saveDbData(data: Record<string, Record<string, any>>) {
+    fs.writeFileSync("database.json", JSON.stringify(data, null, 2))
+  }
+
+  public dump() {
+    console.log(this.getDbData())
+  }
+
   public get(collection: string, id: UUID) {
-    const col = this.loadCollection(collection)
+    const db = this.getDbData()
+    const col = db[collection] || {}
+    
     if (id.toString() in col) {
       const data = col[id.toString()]
-      // inject id to data
       data["id"] = id.toString()
       return data
     }
@@ -49,43 +38,55 @@ export class TestFSDatabase implements ITestDatabase {
     throw new Error(`Data with id ${id} not found`)
   }
 
+  public insert(collection: string, data: any): UUID {
+    const db = this.getDbData()
+    const col = db[collection] || {}
+    const uuid = randomUUID()
+    
+    delete data["id"]
+    col[uuid] = data
+    db[collection] = col
+    
+    this.saveDbData(db)
+    return new UUID(uuid)
+  }
+
   public update(collection: string, id: UUID, data: any): boolean {
-    const col = this.loadCollection(collection)
+    const db = this.getDbData()
+    const col = db[collection] || {}
+    
     if (id.toString() in col) {
       delete data["id"]
       col[id.toString()] = data
-      this.dataMemory = col
-      this.fsWrite()
+      db[collection] = col
+      
+      this.saveDbData(db)
+      return true
+    }
+    return false
+  }
+
+  public delete(collection: string, id: UUID): boolean {
+    const db = this.getDbData()
+    const col = db[collection] || {}
+    
+    if (id.toString() in col) {
+      delete col[id.toString()] // Deletes the specific senior
+      db[collection] = col      // Updates the senior collection
+      
+      this.saveDbData(db)       // Writes the ENTIRE db back (including users)
       return true
     }
     return false
   }
 
   public getAll(collection: string): any[] {
-    return Object.entries(this.loadCollection(collection)).map(([k,v]) => {
+    const db = this.getDbData()
+    const col = db[collection] || {}
+    
+    return Object.entries(col).map(([k, v]) => {
       v["id"] = k
       return v
     })
-  }
-
-  public insert(collection: string, data: any): UUID {
-    const col = this.loadCollection(collection)
-    const uuid = randomUUID()
-    delete data["id"]
-    col[uuid] = data
-    this.dataMemory[collection] = col
-    this.fsWrite()
-    return new UUID(uuid)
-  }
-
-  public delete(collection: string, id: UUID): boolean {
-    const col = this.loadCollection(collection)
-    if (id.toString() in col) {
-      delete col[id.toString()]
-      this.dataMemory = col
-      this.fsWrite()
-      return true
-    }
-    return false
   }
 }

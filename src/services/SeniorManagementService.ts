@@ -50,4 +50,17 @@ export class SeniorManagementService implements IService {
 
     return this.seniorRepo.findAllByAdultChildId(adultChildId)
   }
+
+  public getSeniorById(adultChildId: UUID, seniorId: UUID): Senior | undefined {
+    const senior = this.seniorRepo.findById(seniorId)
+    if (!senior) {
+      return undefined
+    }
+
+    if (senior.toDTO().adultChildId.toString() !== adultChildId.toString()) {
+      return undefined
+    }
+
+    return senior
+  }
 }

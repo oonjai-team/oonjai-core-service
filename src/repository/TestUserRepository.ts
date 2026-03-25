@@ -28,8 +28,12 @@ export class TestUserRepository implements IUserRepository {
       return this.db.insert("user",user.toDTO())
   }
   findById(id: UUID): User | undefined {
-    const user = this.db.get("user",id.toString())
-    return new User(user.email, user.firstname, user.lastname, new Timestamp(user.createdAt), user.role, id)
+    try {
+      const user = this.db.get("user",id.toString())
+      return new User(user.email, user.firstname, user.lastname, new Timestamp(user.createdAt), user.role, id)
+    } catch (e) {
+      return undefined
+    }
   }
 
   findByEmail(email: string): User | undefined {

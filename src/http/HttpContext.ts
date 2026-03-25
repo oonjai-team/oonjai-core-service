@@ -36,3 +36,4 @@ export const notFound = (message = "not found"): HttpResult => ({ status: 404, b
 export const badRequest = (message = "bad request"): HttpResult => ({ status: 400, body: { message } })
 export const unauthorized = (message = "unauthorized"): HttpResult => ({ status: 401, body: { message } })
 export const internalError = (message = "internal server error"): HttpResult => ({ status: 500, body: { message } })
+export const forbidden = (message = "forbidden"): HttpResult => ({ status: 403, body: { message } })

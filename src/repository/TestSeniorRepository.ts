@@ -15,7 +15,12 @@ export class TestSeniorRepository implements ISeniorRepository {
   }
 
   public findById(id: UUID): Senior | undefined {
-    return this.db.get("senior", id.toString())
+    try {
+      const dto = this.db.get("senior", id.toString())
+      return new Senior(dto)
+    } catch (e) {
+      return undefined
+    }
   }
 
   public findAllByAdultChildId(adultChildId: UUID): Senior[] {
