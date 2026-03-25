@@ -1,4 +1,4 @@
-import type {UUID} from "@type/uuid"
+import {UUID} from "@type/uuid"
 import type {Timestamp} from "@type/timestamp"
 import type {SeniorDTO} from "@entity/SeniorDTO"
 
@@ -17,13 +17,13 @@ export class Senior {
   constructor(...args: [SeniorDTO] | [UUID, string, string, string, string, Timestamp, UUID?]) {
     if (typeof args[0] === "object" && "adultChildId" in args[0]) {
       const dto = args[0] as SeniorDTO
-      this.adultChildId = dto.adultChildId
+      this.adultChildId = new UUID(dto.adultChildId)
       this.fullname = dto.fullname
       this.dateOfBirth = dto.dateOfBirth
       this.mobilityLevel = dto.mobilityLevel
       this.healthNote = dto.healthNote
       this.createdAt = dto.createdAt
-      this.id = dto.id
+      this.id = new UUID(dto.id)
       return
     }
 
@@ -47,13 +47,13 @@ export class Senior {
 
   public toDTO(): SeniorDTO {
     return {
-      adultChildId: this.adultChildId,
+      adultChildId: this.adultChildId.toString(),
       fullname: this.fullname,
       dateOfBirth: this.dateOfBirth,
       mobilityLevel: this.mobilityLevel,
       healthNote: this.healthNote,
       createdAt: this.createdAt,
-      id: this.id
+      id: this.id?.toString()
     }
   }
 

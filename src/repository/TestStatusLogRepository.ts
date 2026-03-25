@@ -7,12 +7,14 @@ export class TestStatusLogRepository implements IStatusLogRepository {
 constructor(private db: ITestDatabase) {}
 
   public save(log: StatusLog): boolean {
-    this.db.update("statusLog", log.getId() as string, log.toDTO())
+  const id = log.getId()
+  if (!id) return false
+    this.db.update("statusLog", id, log.toDTO())
     return true
   }
 
   public findById(id: UUID): StatusLog | undefined {
-    return this.db.get("statusLog", id.toString())
+    return this.db.get("statusLog", id)
   }
 
   public findByBookingId(bookingId: string): StatusLog[] {

@@ -1,4 +1,4 @@
-import type {UUID} from "@type/uuid"
+import {UUID} from "@type/uuid"
 import type {Timestamp} from "@type/timestamp"
 import {RoleEnum} from "@type/user"
 import type {UserDTO} from "@entity/UserDTO"
@@ -25,7 +25,7 @@ export class User {
       this.firstname = dto.firstname
       this.lastname = dto.lastname
       this.createdAt = dto.createdAt
-      this.id = dto.id
+      this.id = new UUID(dto.id)
       this.role = dto.role
 
       if (dto.role === RoleEnum.CARETAKER) {
@@ -94,7 +94,7 @@ export class User {
       lastname: this.lastname,
       role: this.role,
       createdAt: this.createdAt,
-      id: this.id
+      id: this.id?.toString()
     }
   }
 }

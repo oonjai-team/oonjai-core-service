@@ -33,18 +33,31 @@ import {MemoryOAuthStateRepository} from "@repo/MemoryOAuthStateRepository"
 import {OAuthRegistry} from "@serv/oauth/OAuthRegistry"
 import {GoogleOauthService} from "@serv/oauth/GoogleOauthService"
 
+import {TestBookingRepository} from "@repo/TestBookingRepository"
+import {BookingService} from "@serv/BookingService"
+import {getBookings} from "@endpoint/bookings/getBookings"
+import {createBooking} from "@endpoint/bookings/createBooking"
+import {getBookingById} from "@endpoint/bookings/getBookingById"
+import {updateBooking} from "@endpoint/bookings/updateBooking"
+import {cancelBooking} from "@endpoint/bookings/cancelBooking"
+import {confirmBooking} from "@endpoint/bookings/confirmBooking"
+import {endSession} from "@endpoint/bookings/endSession"
+import {submitReview} from "@endpoint/bookings/submitReview"
+
 // ── Infrastructure ────────────────────────────────────────────────────────────
 const db = new TestFSDatabase()
 const userRepo = new TestUserRepository(db)
 const seniorRepo = new TestSeniorRepository(db)
 const statusLogRepo = new TestStatusLogRepository(db) // ← new repository for status logs
 const statusLogService = new StatusLogService(statusLogRepo)  // ← removed bookingRepo dependency from StatusLogService constructor
+const bookingRepo = new TestBookingRepository(db)
 const oauthStateRepo = new MemoryOAuthStateRepository()
 
 // ── Services ──────────────────────────────────────────────────────────────────
 const jwtSessionService = new JWTSessionService(userRepo, process.env["JWT_SECRET"] ?? "change-me-in-production")
 const userService = new UserService(userRepo)
 const seniorManagementService = new SeniorManagementService(userRepo, seniorRepo)
+const bookingService = new BookingService(bookingRepo, userRepo)
 const authService = new AuthService(userService, jwtSessionService)
 const lineAuthService = new LineOauthService(
   process.env["LINE_CHANNEL_ID"] ?? "",
@@ -85,6 +98,17 @@ registry
   // Seniors
   .register(addSenior, [seniorManagementService])
   .register(getAllSeniors, [seniorManagementService])
-  // Status Logs — wired after BE-BOOKING-TASK is merged
+  // Status Logs
+  .register(createStatusLog, [statusLogService])
+  .register(getStatusLogs, [statusLogService])
+  // Bookings
+  .register(getBookings, [bookingService])
+  .register(createBooking, [bookingService])
+  .register(getBookingById, [bookingService])
+  .register(updateBooking, [bookingService])
+  .register(cancelBooking, [bookingService])
+  .register(confirmBooking, [bookingService])
+  .register(endSession, [bookingService])
+  .register(submitReview, [bookingService])
 
 serveBun(router, {port: 3000})
