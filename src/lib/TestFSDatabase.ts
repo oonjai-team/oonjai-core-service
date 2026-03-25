@@ -30,11 +30,11 @@ export class TestFSDatabase implements ITestDatabase {
   }
 
   private loadCollection(name: string): Record<string, any> {
-    if (this.dataMemory[name]) {
-      return this.dataMemory[name]
+    if (!(name in this.dataMemory)) {
+      this.dataMemory[name] = {}
     }
 
-    return {}
+    return this.dataMemory[name] as Record<string, any>
   }
 
   public get(collection: string, id: UUID) {
@@ -49,12 +49,21 @@ export class TestFSDatabase implements ITestDatabase {
     throw new Error(`Data with id ${id} not found`)
   }
 
+  public set(collection: string, id: UUID, data: any): boolean {
+    const col = this.loadCollection(collection)
+    delete data["id"]
+    col[id.toString()] = data
+    this.dataMemory[collection] = col
+    this.fsWrite()
+    return true
+  }
+
   public update(collection: string, id: UUID, data: any): boolean {
     const col = this.loadCollection(collection)
     if (id.toString() in col) {
       delete data["id"]
       col[id.toString()] = data
-      this.dataMemory = col
+      this.dataMemory[collection] = col
       this.fsWrite()
       return true
     }

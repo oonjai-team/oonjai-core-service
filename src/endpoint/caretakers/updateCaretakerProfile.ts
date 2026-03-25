@@ -12,7 +12,8 @@ handler: async (ctx, [service], session) => {
       return unauthorized("User must be logged in")
     }
 
-    if (user.isCaretaker()) {
+
+    if (!user.isCaretaker()) {
       return { status: 403, body: { message: "Only caretakers can update a caretaker profile" } }
     }
 

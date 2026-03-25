@@ -94,8 +94,7 @@ export class User {
       lastname: this.lastname,
       role: this.role,
       createdAt: this.createdAt,
-      id: this.id,
-      caretaker: this.caretaker?.toDTO()
+      id: this.id
     }
   }
 }

@@ -349,8 +349,23 @@
       <div class="form-row"><label>Last Name</label><input id="reg-lastname" type="text" placeholder="Doe" /></div>
     </div>
     <div class="row-2">
-      <div class="form-row"><label>Role</label><select id="reg-role"><option value="adult_child">adult_child</option><option value="caretaker">caretaker</option><option value="admin">admin</option></select></div>
+      <div class="form-row"><label>Role</label><select id="reg-role" onchange="toggleCaretakerFields()"><option value="adult_child">adult_child</option><option value="caretaker">caretaker</option><option value="admin">admin</option></select></div>
       <div class="form-row"><label>OAuth Token <span style="color:var(--muted)">(optional)</span></label><input id="reg-oauth" type="text" placeholder="optional" /></div>
+    </div>
+    <div id="caretaker-fields" style="display:none">
+      <div class="form-row"><label>Bio</label><input id="reg-bio" type="text" placeholder="Brief professional bio" /></div>
+      <div class="row-2">
+        <div class="form-row"><label>Specialization</label><input id="reg-specialization" type="text" placeholder="e.g. elderly care" /></div>
+        <div class="form-row"><label>Permission</label><input id="reg-permission" type="text" placeholder="e.g. medication, mobility" /></div>
+      </div>
+      <div class="row-2">
+        <div class="form-row"><label>Hourly Rate</label><input id="reg-hourlyrate" type="number" placeholder="e.g. 25" min="0" /></div>
+        <div class="form-row"><label>Currency</label><input id="reg-currency" type="text" placeholder="e.g. USD" /></div>
+      </div>
+      <div class="row-2">
+        <div class="form-row"><label>Experience (years)</label><input id="reg-experience" type="number" placeholder="e.g. 3" min="0" /></div>
+        <div class="form-row"><label>Contact Info</label><input id="reg-contactinfo" type="text" placeholder="e.g. phone or address" /></div>
+      </div>
     </div>
     <button class="btn" onclick="doRegister()">Send Request</button>
     <div class="response-box" id="res-register" style="display:none"></div>
@@ -944,11 +959,33 @@
     window.location.href = url
   }
 
+  function toggleCaretakerFields() {
+    const role = document.getElementById("reg-role").value
+    document.getElementById("caretaker-fields").style.display = role === "caretaker" ? "" : "none"
+  }
   async function doRegister() {
     const body = {email:document.getElementById("reg-email").value.trim(), firstname:document.getElementById("reg-firstname").value.trim(), lastname:document.getElementById("reg-lastname").value.trim(), role:document.getElementById("reg-role").value}
     const oauth = document.getElementById("reg-oauth").value.trim()
     if (oauth) body.oauthToken = oauth
     if (!body.email||!body.firstname||!body.lastname) return alert("Email, first name, last name required")
+    if (body.role === "caretaker") {
+      const bio = document.getElementById("reg-bio").value.trim()
+      const specialization = document.getElementById("reg-specialization").value.trim()
+      const hourlyRate = document.getElementById("reg-hourlyrate").value.trim()
+      const currency = document.getElementById("reg-currency").value.trim()
+      const experience = document.getElementById("reg-experience").value.trim()
+      const contactInfo = document.getElementById("reg-contactinfo").value.trim()
+      const permission = document.getElementById("reg-permission").value.trim()
+      if (!bio||!specialization||!hourlyRate||!currency||!experience||!contactInfo||!permission)
+        return alert("Caretaker registration requires: bio, specialization, hourlyRate, currency, experience, contactInfo, permission")
+      body.bio = bio
+      body.specialization = specialization
+      body.hourlyRate = Number(hourlyRate)
+      body.currency = currency
+      body.experience = Number(experience)
+      body.contactInfo = contactInfo
+      body.permission = permission
+    }
     const {status, data} = await api("POST", "/auth/register", body)
     renderResponse("res-register", status, data)
   }

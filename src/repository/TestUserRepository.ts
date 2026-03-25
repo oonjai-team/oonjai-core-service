@@ -17,7 +17,7 @@ export class TestUserRepository implements IUserRepository {
     if (user.isNew()) {
       const id = this.db.insert("user", user.toDTO())
       if (user.isCaretaker()) {
-        this.db.update("caretaker", id.toString(), user.getCaretaker()?.toDTO() ?? {})
+        this.db.set("caretaker", id.toString(), user.getCaretaker()?.toDTO() ?? {})
       }
       return [true, id]
     }
