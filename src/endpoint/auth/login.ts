@@ -20,7 +20,7 @@ export const login: Endpoint<[AuthService]> = {
 
       return withCookies(
         sessionCookies(token.accessToken, token.refreshToken),
-        redirectTo("http://localhost:3001/")
+        ok()
       )
     } catch {
       return unauthorized("authentication failed")

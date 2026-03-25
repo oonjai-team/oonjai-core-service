@@ -935,15 +935,8 @@
     const oauthToken = document.getElementById("login-oauth").value.trim() || undefined
     const {status, data} = await api("POST", "/auth/login", {email, ...(oauthToken&&{oauthToken})})
     renderResponse("res-login", status, data)
-    if (status===200 && data?.accessToken) {
-      const ap = decodeJwtPayload(data.accessToken)
-      if (ap?.type!=="access") {
-        renderResponse("res-login", 0, {error:`accessToken has type="${ap?.type}" — expected "access". Server bug.`})
-        return
-      }
-      saveTokens(data.accessToken, data.refreshToken)
-      const s = await api("GET", "/auth/session", null, data.accessToken)
-      if (s.status===200 && s.data?.user) updateSessionBadge(s.data.user, "token")
+    if (status===200) {
+      window.location.reload()
     }
   }
 
