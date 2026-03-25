@@ -17,7 +17,7 @@ export class TestUserRepository implements IUserRepository {
     if (user.isNew()) {
       const id = this.db.insert("user", user.toDTO())
       if (user.isCaretaker()) {
-        this.db.set("caretaker", id.toString(), user.getCaretaker()?.toDTO() ?? {})
+        this.db.set("caretaker", id, user.getCaretaker()?.toDTO() ?? {})
       }
       return [true, id]
     }
@@ -39,12 +39,12 @@ export class TestUserRepository implements IUserRepository {
       throw new Error("cannot delete")
      }
 
-     this.db.delete("user", user.getId() as string)
+     this.db.delete("user", user.getId() as UUID)
   }
 
   findById(id: UUID): User | undefined {
     try {
-      const record = this.db.get("user", id.toString())
+      const record = this.db.get("user", id)
       return this.reconstruct(record, id)
     }catch (e) {
       return undefined
@@ -89,12 +89,12 @@ export class TestUserRepository implements IUserRepository {
 
     const mapped = results.map((v) => {
       const id = v.id
-      const user = this.db.get("users", id)
+      const user = this.db.get("users", new UUID(id))
       if (!user) {
         return null
       }
 
-      return new User(user.email, user.firstname, user.lastname, new Timestamp(user.createdAt), user.role, id, new Caretaker(v))
+      return new User(user.email, user.firstname, user.lastname, new Timestamp(user.createdAt), user.role, new UUID(id), new Caretaker(v))
     }).filter((v) => v !== null)
 
     return mapped
@@ -121,7 +121,7 @@ export class TestUserRepository implements IUserRepository {
   private reconstruct(record: any, id: UUID): User {
     if (record.role === RoleEnum.CARETAKER) {
       // get caretaker
-      const dto = this.db.get("caretaker", id.toString())
+      const dto = this.db.get("caretaker", id)
       const ct = new Caretaker(dto)
 
       return new User(record.email, record.firstname, record.lastname, new Timestamp(record.createdAt), RoleEnum.CARETAKER, id, ct)

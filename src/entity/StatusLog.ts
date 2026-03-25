@@ -1,4 +1,4 @@
-import type {UUID} from "@type/uuid"
+import {UUID} from "@type/uuid"
 import type {Timestamp} from "@type/timestamp"
 import type {StatusLogDTO} from "@entity/StatusLogDTO"
 import type {CareSessionStatus} from "@type/careSession"
@@ -17,7 +17,7 @@ constructor(statusLogDTOLike: StatusLogDTO)
   constructor(...args: [StatusLogDTO] | [string, CareSessionStatus, string, string | null, Timestamp, UUID?]) {
     if (typeof args[0] === "object" && "bookingId" in args[0]) {
       const dto = args[0] as StatusLogDTO
-      this.id = dto.id
+      this.id = new UUID(dto.id)
       this.bookingId = dto.bookingId
       this.statusType = dto.statusType
       this.notes = dto.notes
@@ -45,7 +45,7 @@ constructor(statusLogDTOLike: StatusLogDTO)
 
   public toDTO(): StatusLogDTO {
     return {
-      id: this.id,
+      id: this.id?.toString(),
       bookingId: this.bookingId,
       statusType: this.statusType,
       notes: this.notes,

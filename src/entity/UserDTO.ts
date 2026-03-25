@@ -4,7 +4,7 @@ import type {RoleEnum} from "@type/user"
 
 
 export interface UserDTO{
-  id: UUID | undefined
+  id: string | undefined
   email: string
   firstname: string
   lastname: string

@@ -3,7 +3,7 @@ import type {Timestamp} from "@type/timestamp"
 import type {CareSessionStatus} from "@type/careSession"
 
 export interface StatusLogDTO {
-id: UUID | undefined
+id: string | undefined
 bookingId: string
 statusType: CareSessionStatus
 notes: string
