@@ -6,7 +6,7 @@ import {UUID} from "@type/uuid"
 import {Timestamp} from "@type/timestamp"
 import {RoleEnum} from "@type/user"
 import type {CaretakerFilter} from "@type/caretaker"
-import type {CareTakerUserAttributes} from "@entity/UserDTO"
+import type {CareTakerUserAttributes, PartialUserDTO, UserDTO} from "@entity/UserDTO"
 
 
 export class TestUserRepository implements IUserRepository {
@@ -98,6 +98,24 @@ export class TestUserRepository implements IUserRepository {
     }).filter((v) => v !== null)
 
     return mapped
+  }
+
+  updateUser(id: UUID, data: Partial<Omit<UserDTO, "caretaker">>): boolean {
+    try {
+      this.db.update("user", id, data)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+
+  updateAttrProfile(id: UUID, data: Partial<CareTakerUserAttributes>): boolean {
+    try {
+      this.db.update("caretaker", id, data)
+      return true
+    } catch (_) {
+      return false
+    }
   }
 
   private reconstruct(record: any, id: UUID): User {

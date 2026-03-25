@@ -58,11 +58,15 @@ export class TestFSDatabase implements ITestDatabase {
     return true
   }
 
-  public update(collection: string, id: UUID, data: any): boolean {
+  public update(collection: string, id: UUID, data: Record<string, any>): boolean {
     const col = this.loadCollection(collection)
     if (id.toString() in col) {
       delete data["id"]
-      col[id.toString()] = data
+      const t = col[id.toString()] ?? {}
+      for (const [k,v] of Object.entries(data)){
+        if (v === undefined) continue
+        t[k] = v
+      }
       this.dataMemory[collection] = col
       this.fsWrite()
       return true

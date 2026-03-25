@@ -8,7 +8,7 @@ export interface ITestDatabase {
 
   getAll(collection: string): any[]
 
-  update(collection: string, id: UUID, data: any): boolean
+  update(collection: string, id: UUID, data: Record<string, any>): boolean
 
   set(collection: string, id: UUID, data: any): boolean
 

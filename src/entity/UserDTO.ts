@@ -13,6 +13,7 @@ export interface UserDTO{
   caretaker?: CareTakerUserAttributes
 }
 
+export type PartialUserDTO = Partial<Omit<UserDTO, "caretaker"> & {caretaker?: Partial<CareTakerUserAttributes>}>
 
 export interface CareTakerUserAttributes {
   bio: string

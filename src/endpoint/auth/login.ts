@@ -1,4 +1,4 @@
-import type {Endpoint} from "@http/HttpContext"
+import {type Endpoint, redirectTo, sessionCookies, withCookies} from "@http/HttpContext"
 import {badRequest, ok, unauthorized} from "@http/HttpContext"
 import type {AuthService} from "@serv/AuthService"
 
@@ -17,7 +17,11 @@ export const login: Endpoint<[AuthService]> = {
         body.email as string,
         body.oauthToken as string | undefined
       )
-      return ok(token)
+
+      return withCookies(
+        sessionCookies(token.accessToken, token.refreshToken),
+        redirectTo("http://localhost:3001/")
+      )
     } catch {
       return unauthorized("authentication failed")
     }

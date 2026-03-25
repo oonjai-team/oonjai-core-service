@@ -5,7 +5,7 @@ import {Caretaker} from "@entity/Caretaker"
 import {RoleEnum} from "@type/user"
 import type {UUID} from "@type/uuid"
 import type {IService} from "@serv/IService"
-import type {CareTakerUserAttributes, UserDTO} from "@entity/UserDTO"
+import type {CareTakerUserAttributes, PartialUserDTO, UserDTO} from "@entity/UserDTO"
 import type {CaretakerFilter} from "@type/caretaker"
 
 export class UserService implements IService {
@@ -60,26 +60,13 @@ export class UserService implements IService {
     return available
   }
 
-  public updateUser(id: UUID, data: Partial<UserDTO>) {
-    const user = this.userRepo.findById(id)
-    if (!user) {
-      return
+  public updateUser(id: UUID, data: PartialUserDTO) {
+    const copy = {...data}
+    if (copy.caretaker) {
+      this.userRepo.updateAttrProfile(id, copy.caretaker)
+      // @ts-ignore
+      delete copy["caretaker"]
     }
-
-    if (data.firstname) {
-      user.setFirstname(data.firstname)
-    }
-    if (data.lastname) {
-      user.setLastname(data.lastname)
-    }
-    if (data.email) {
-      user.setEmail(data.email)
-    }
-
-    if (data.caretaker) {
-      user.setCaretaker(new Caretaker(data.caretaker))
-    }
-
-    this.userRepo.save(user)
+    this.userRepo.updateUser(id, copy)
   }
 }

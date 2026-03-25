@@ -2,6 +2,7 @@ import {type Endpoint, unauthorized, ok} from "@http/HttpContext"
 import {RoleEnum} from "@type/user"
 import {UUID} from "@type/uuid"
 import type {UserService} from "@serv/UserService"
+import type {CareTakerUserAttributes} from "@entity/UserDTO"
 
 export const updateCaretakerProfile: Endpoint<[UserService]> = {
 method: "PUT",
@@ -18,7 +19,7 @@ handler: async (ctx, [service], session) => {
     }
 
     const body = ctx.body as Record<string, unknown>
-    service.updateUser(new UUID(user.getId() as string), body)
+    service.updateUser(new UUID(user.getId() as string), {caretaker: body as Partial<CareTakerUserAttributes>})
 
     return ok({message: "profile updated"})
   },
