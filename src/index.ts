@@ -44,6 +44,13 @@ import {confirmBooking} from "@endpoint/bookings/confirmBooking"
 import {endSession} from "@endpoint/bookings/endSession"
 import {submitReview} from "@endpoint/bookings/submitReview"
 
+// Verification
+import {TestVerificationRepository} from "@repo/TestVerificationRepository"
+import {VerificationService} from "@serv/VerificationService"
+import {createVerification} from "@endpoint/verifications/createVerification"
+import {getPendingVerifications} from "@endpoint/verifications/getPendingVerifications"
+import {updateVerification} from "@endpoint/verifications/updateVerification"
+
 // ── Infrastructure ────────────────────────────────────────────────────────────
 const db = new TestFSDatabase()
 const userRepo = new TestUserRepository(db)
@@ -51,6 +58,7 @@ const seniorRepo = new TestSeniorRepository(db)
 const statusLogRepo = new TestStatusLogRepository(db) // ← new repository for status logs
 const statusLogService = new StatusLogService(statusLogRepo)  // ← removed bookingRepo dependency from StatusLogService constructor
 const bookingRepo = new TestBookingRepository(db)
+const verificationRepo = new TestVerificationRepository(db)
 const oauthStateRepo = new MemoryOAuthStateRepository()
 
 // ── Services ──────────────────────────────────────────────────────────────────
@@ -58,6 +66,7 @@ const jwtSessionService = new JWTSessionService(userRepo, process.env["JWT_SECRE
 const userService = new UserService(userRepo)
 const seniorManagementService = new SeniorManagementService(userRepo, seniorRepo)
 const bookingService = new BookingService(bookingRepo, userRepo)
+const verificationService = new VerificationService(verificationRepo, userRepo)
 const authService = new AuthService(userService, jwtSessionService)
 const lineAuthService = new LineOauthService(
   process.env["LINE_CHANNEL_ID"] ?? "",
@@ -110,5 +119,9 @@ registry
   .register(confirmBooking, [bookingService])
   .register(endSession, [bookingService])
   .register(submitReview, [bookingService])
+  // Verifications
+  .register(createVerification, [verificationService])
+  .register(getPendingVerifications, [verificationService])
+  .register(updateVerification, [verificationService])
 
 serveBun(router, {port: 3000})
