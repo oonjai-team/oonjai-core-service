@@ -13,6 +13,8 @@ import {TestFSDatabase} from "./lib/TestFSDatabase"
 import {updateUser} from "@endpoint/users/updateUser"
 import {addSenior} from "@endpoint/seniors/addSenior"
 import {getAllSeniors} from "@endpoint/seniors/getAllSeniors"
+import {getSeniorById} from "@endpoint/seniors/getSeniorById"
+import {deleteSenior} from "@endpoint/seniors/deleteSenior"
 import {login} from "@endpoint/auth/login"
 import {register} from "@endpoint/auth/register"
 import {logout} from "@endpoint/auth/logout"
@@ -44,6 +46,12 @@ import {confirmBooking} from "@endpoint/bookings/confirmBooking"
 import {endSession} from "@endpoint/bookings/endSession"
 import {submitReview} from "@endpoint/bookings/submitReview"
 
+import {TestPaymentRepository} from "@repo/TestPaymentRepository"
+import {PaymentService} from "@serv/PaymentService"
+import {initiatePayment} from "@endpoint/payments/initiatePayment"
+import {getPaymentStatus} from "@endpoint/payments/getPaymentStatus"
+import {paymentWebhook} from "@endpoint/payments/paymentWebhook"
+
 // ── Infrastructure ────────────────────────────────────────────────────────────
 const db = new TestFSDatabase()
 const userRepo = new TestUserRepository(db)
@@ -51,6 +59,7 @@ const seniorRepo = new TestSeniorRepository(db)
 const statusLogRepo = new TestStatusLogRepository(db) // ← new repository for status logs
 const statusLogService = new StatusLogService(statusLogRepo)  // ← removed bookingRepo dependency from StatusLogService constructor
 const bookingRepo = new TestBookingRepository(db)
+const paymentRepo = new TestPaymentRepository(db)
 const oauthStateRepo = new MemoryOAuthStateRepository()
 
 // ── Services ──────────────────────────────────────────────────────────────────
@@ -58,6 +67,7 @@ const jwtSessionService = new JWTSessionService(userRepo, process.env["JWT_SECRE
 const userService = new UserService(userRepo)
 const seniorManagementService = new SeniorManagementService(userRepo, seniorRepo)
 const bookingService = new BookingService(bookingRepo, userRepo)
+const paymentService = new PaymentService(paymentRepo, bookingRepo)
 const authService = new AuthService(userService, jwtSessionService)
 const lineAuthService = new LineOauthService(
   process.env["LINE_CHANNEL_ID"] ?? "",
@@ -98,6 +108,8 @@ registry
   // Seniors
   .register(addSenior, [seniorManagementService])
   .register(getAllSeniors, [seniorManagementService])
+  .register(getSeniorById, [seniorManagementService])
+  .register(deleteSenior, [seniorManagementService])
   // Status Logs
   .register(createStatusLog, [statusLogService])
   .register(getStatusLogs, [statusLogService])
@@ -110,5 +122,9 @@ registry
   .register(confirmBooking, [bookingService])
   .register(endSession, [bookingService])
   .register(submitReview, [bookingService])
+  // Payments
+  .register(initiatePayment, [paymentService])
+  .register(getPaymentStatus, [paymentService])
+  .register(paymentWebhook, [paymentService])
 
 serveBun(router, {port: 3000})

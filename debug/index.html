@@ -250,8 +250,8 @@
     <div class="section-body open" id="ng-seniors">
       <button class="nav-btn" onclick="show('addSenior',event)"><span class="method-badge POST">POST</span>Add Senior<span class="impl-dot yes"></span></button>
       <button class="nav-btn" onclick="show('getSeniors',event)"><span class="method-badge GET">GET</span>Get Seniors<span class="impl-dot yes"></span></button>
-      <button class="nav-btn" onclick="show('getSeniorById',event)"><span class="method-badge GET">GET</span>Get Senior by ID<span class="impl-dot no"></span></button>
-      <button class="nav-btn" onclick="show('removeSenior',event)"><span class="method-badge DELETE">DEL</span>Remove Senior<span class="impl-dot no"></span></button>
+      <button class="nav-btn" onclick="show('getSeniorById',event)"><span class="method-badge GET">GET</span>Get Senior by ID<span class="impl-dot yes"></span></button>
+      <button class="nav-btn" onclick="show('removeSenior',event)"><span class="method-badge DELETE">DEL</span>Remove Senior<span class="impl-dot yes"></span></button>
     </div>
   </div>
 
@@ -439,7 +439,7 @@
 
   <div class="panel" id="panel-getSeniorById">
     <div class="panel-header"><div class="panel-title">Get Senior by ID</div><div class="panel-path">GET /users/seniors/:seniorId</div></div>
-    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/seniors/getSeniorById.ts</code></div>
+    <!-- <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/seniors/getSeniorById.ts</code></div> -->
     <div class="form-row"><label>Senior ID</label><input id="gsb-seniorId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('gsb-seniorId','seniorId')">↓ from context</span></div>
     <button class="btn" onclick="doGetSeniorById()">Send Request</button>
     <div class="response-box" id="res-getSeniorById" style="display:none"></div>
@@ -447,7 +447,7 @@
 
   <div class="panel" id="panel-removeSenior">
     <div class="panel-header"><div class="panel-title">Remove Senior</div><div class="panel-path">DELETE /users/seniors/:seniorId</div></div>
-    <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/seniors/removeSenior.ts</code></div>
+    <!-- <div class="not-impl-banner"><strong>🔴 Not yet implemented</strong>Create <code>src/endpoint/seniors/removeSenior.ts</code></div> -->
     <div class="form-row"><label>Senior ID</label><input id="rs-seniorId" type="text" placeholder="uuid" /><span class="ctx-pull" onclick="pullCtx('rs-seniorId','seniorId')">↓ from context</span></div>
     <button class="btn danger" onclick="doRemoveSenior()">Send Request</button>
     <div class="response-box" id="res-removeSenior" style="display:none"></div>

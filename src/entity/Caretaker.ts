@@ -17,7 +17,7 @@ export class Caretaker {
   constructor(bio: string, specialization: string, hourlyRate: number, currency: string, experience: number, rating: number, reviewCount: number, isVerified: boolean, isAvailable: boolean, contactInfo: string, permission: string)
 
   constructor(...args: [CareTakerUserAttributes] | [string, string, number, string, number, number, number, boolean, boolean, string, string]) {
-    if (typeof args[0] === "object" && "email" in args[0]) {
+    if (typeof args[0] === "object" && "bio" in args[0]) {
       const attr = args[0] as CareTakerUserAttributes
       this.bio = attr.bio
       this.specialization = attr.specialization
