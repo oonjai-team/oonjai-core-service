@@ -43,6 +43,8 @@ import {TestActivityRepository} from "@repo/TestActivityRepository"
 import {ActivityService} from "@serv/ActivityService"
 import {getActivities} from "@endpoint/activities/getActivities"
 import {getActivityById} from "@endpoint/activities/getActivityById"
+import {getBookedSeniors} from "@endpoint/activities/getBookedSeniors"
+import {getSeniorConflicts} from "@endpoint/activities/getSeniorConflicts"
 import {createActivityBooking} from "@endpoint/bookings/createActivityBooking"
 
 import {TestIncidentLogRepository} from "@repo/TestIncidentLogRepository"
@@ -165,6 +167,8 @@ registry
   // Activities
   .register(getActivities, [activityService])
   .register(getActivityById, [activityService])
+  .register(getBookedSeniors, [bookingService])
+  .register(getSeniorConflicts, [bookingService, activityService, seniorManagementService])
   // Activity Bookings
   .register(createActivityBooking, [bookingService, activityService])
   // Verifications

@@ -20,8 +20,14 @@ export class TestActivityRepository implements IActivityRepository {
     }
   }
 
+  /** Strip computed fields before persisting */
+  private toPersistable(activity: Activity) {
+    const {displayDate, ...data} = activity.toDTO() as Record<string, unknown>
+    return data
+  }
+
   public insert(activity: Activity): string {
-    const id = this.db.insert("activity", activity.toDTO())
+    const id = this.db.insert("activity", this.toPersistable(activity))
     return id.toString()
   }
 
@@ -30,7 +36,7 @@ export class TestActivityRepository implements IActivityRepository {
       throw new Error("cannot save new activity without id")
     }
     const id = activity.getId() as UUID
-    this.db.set("activity", id, activity.toDTO())
+    this.db.set("activity", id, this.toPersistable(activity))
     return true
   }
 

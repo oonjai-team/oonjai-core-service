@@ -32,6 +32,18 @@ export class TestBookingRepository implements IBookingRepository {
     )
   }
 
+  public findByActivityId(activityId: string): Booking[] {
+    return this.db.getAll("booking")
+      .filter(dto => dto.activityId === activityId)
+      .map(r => this.reconstruct(r, new UUID(r.id)))
+  }
+
+  public findBySeniorId(seniorId: UUID): Booking[] {
+    return this.db.getAll("booking")
+      .filter(dto => dto.seniorId === seniorId.toString())
+      .map(r => this.reconstruct(r, new UUID(r.id)))
+  }
+
   private applyFilter(records: any[], filter?: BookingFilter): Booking[] {
     let results = records
 

@@ -10,7 +10,8 @@ export class Activity {
   private host: string
   private hostAvatar: string
   private hostDescription: string
-  private date: string
+  private startDate: string
+  private endDate: string
   private location: string
   private price: number
   private participantCount: number
@@ -22,60 +23,29 @@ export class Activity {
   private createdAt: Timestamp
 
   constructor(dto: ActivityDTO)
-  constructor(
-    title: string, category: string, tags: string[],
-    host: string, hostAvatar: string, hostDescription: string,
-    date: string, location: string, price: number,
-    spotsLeft: number, duration: string, maxPeople: number,
-    rating: number, reviews: number, images: string[],
-    createdAt: Timestamp, id?: UUID
-  )
 
   constructor(
-    ...args:
-      | [ActivityDTO]
-      | [string, string, string[], string, string, string, string, string, number, number, string, number, number, number, string[], Timestamp, UUID?]
+    ...args: [ActivityDTO]
   ) {
-    if (typeof args[0] === "object" && "title" in args[0]) {
-      const dto = args[0] as ActivityDTO
-      this.id = dto.id ? new UUID(dto.id) : undefined
-      this.title = dto.title
-      this.category = dto.category
-      this.tags = dto.tags
-      this.host = dto.host
-      this.hostAvatar = dto.hostAvatar
-      this.hostDescription = dto.hostDescription
-      this.date = dto.date
-      this.location = dto.location
-      this.price = dto.price
-      this.participantCount = dto.participantCount ?? (dto.maxPeople - (dto.spotsLeft ?? dto.maxPeople))
-      this.duration = dto.duration
-      this.maxPeople = dto.maxPeople
-      this.rating = dto.rating
-      this.reviews = dto.reviews
-      this.images = dto.images
-      this.createdAt = dto.createdAt
-      return
-    }
-
-    const arr = args as [string, string, string[], string, string, string, string, string, number, number, string, number, number, number, string[], Timestamp, UUID?]
-    this.title = arr[0]
-    this.category = arr[1]
-    this.tags = arr[2]
-    this.host = arr[3]
-    this.hostAvatar = arr[4]
-    this.hostDescription = arr[5]
-    this.date = arr[6]
-    this.location = arr[7]
-    this.price = arr[8]
-    this.participantCount = arr[9]
-    this.duration = arr[10]
-    this.maxPeople = arr[11]
-    this.rating = arr[12]
-    this.reviews = arr[13]
-    this.images = arr[14]
-    this.createdAt = arr[15]
-    this.id = arr[16]
+    const dto = args[0] as ActivityDTO
+    this.id = dto.id ? new UUID(dto.id) : undefined
+    this.title = dto.title
+    this.category = dto.category
+    this.tags = dto.tags
+    this.host = dto.host
+    this.hostAvatar = dto.hostAvatar
+    this.hostDescription = dto.hostDescription
+    this.startDate = dto.startDate
+    this.endDate = dto.endDate
+    this.location = dto.location
+    this.price = dto.price
+    this.participantCount = dto.participantCount ?? 0
+    this.duration = dto.duration
+    this.maxPeople = dto.maxPeople
+    this.rating = dto.rating
+    this.reviews = dto.reviews
+    this.images = dto.images
+    this.createdAt = dto.createdAt
   }
 
   public isNew(): boolean {
@@ -84,6 +54,50 @@ export class Activity {
 
   public getId(): UUID | undefined {
     return this.id
+  }
+
+  public getStartDate(): string {
+    return this.startDate
+  }
+
+  public getEndDate(): string {
+    return this.endDate
+  }
+
+  public addParticipants(count: number): void {
+    if (count <= 0) throw new Error("INVALID: participant count must be positive")
+    if (this.participantCount + count > this.maxPeople) {
+      throw new Error("FULL: not enough spots left for this activity")
+    }
+    this.participantCount += count
+  }
+
+  /** Format start/end timestamps into a human-readable display string.
+   *  Uses UTC methods since timestamps are stored as UTC representing local activity time. */
+  private formatDisplayDate(): string {
+    const start = new Date(this.startDate)
+    const end = new Date(this.endDate)
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return this.startDate // fallback to raw string if unparseable
+    }
+
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    const dayName = dayNames[start.getUTCDay()]
+    const month = monthNames[start.getUTCMonth()]
+    const day = start.getUTCDate()
+
+    const formatTime = (d: Date) => {
+      const h = d.getUTCHours()
+      const m = d.getUTCMinutes()
+      const ampm = h >= 12 ? "PM" : "AM"
+      const h12 = h % 12 || 12
+      return `${h12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${ampm}`
+    }
+
+    return `${dayName}, ${month} ${day} • ${formatTime(start)} - ${formatTime(end)}`
   }
 
   public toDTO(): ActivityDTO {
@@ -95,11 +109,12 @@ export class Activity {
       host: this.host,
       hostAvatar: this.hostAvatar,
       hostDescription: this.hostDescription,
-      date: this.date,
+      startDate: this.startDate,
+      endDate: this.endDate,
+      displayDate: this.formatDisplayDate(),
       location: this.location,
       price: this.price,
       participantCount: this.participantCount,
-      spotsLeft: Math.max(0, this.maxPeople - this.participantCount),
       duration: this.duration,
       maxPeople: this.maxPeople,
       rating: this.rating,

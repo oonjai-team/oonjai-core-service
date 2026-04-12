@@ -8,11 +8,12 @@ export interface ActivityDTO {
   host: string
   hostAvatar: string
   hostDescription: string
-  date: string
+  startDate: string
+  endDate: string
+  displayDate: string
   location: string
   price: number
   participantCount: number
-  spotsLeft: number
   duration: string
   maxPeople: number
   rating: number

@@ -20,4 +20,8 @@ export class ActivityService implements IService {
   public getActivityById(id: string): Activity | undefined {
     return this.activityRepo.findById(id)
   }
+
+  public saveActivity(activity: Activity): void {
+    this.activityRepo.save(activity)
+  }
 }

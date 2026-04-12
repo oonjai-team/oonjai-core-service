@@ -82,6 +82,37 @@ export class BookingService implements IService {
     return new Booking({...booking.toDTO(), id: id})
   }
 
+  /** Return unique senior IDs that already have a non-cancelled booking for this activity */
+  public getBookedSeniorIds(activityId: string): string[] {
+    const bookings = this.bookingRepo.findByActivityId(activityId)
+    const ids = bookings
+      .filter(b => b.getStatus() !== BookingStatus.CANCELLED)
+      .map(b => b.toDTO().seniorId)
+    return [...new Set(ids)]
+  }
+
+  /** Check if a senior has any non-cancelled booking that overlaps the given time window */
+  public hasSeniorTimeConflict(seniorId: UUID, startDate: string, endDate: string, excludeActivityId?: string): boolean {
+    const bookings = this.bookingRepo.findBySeniorId(seniorId)
+    const newStart = new Date(startDate).getTime()
+    const newEnd = new Date(endDate).getTime()
+
+    // Guard: if the activity dates can't be parsed, skip conflict check
+    if (isNaN(newStart) || isNaN(newEnd)) return false
+
+    return bookings.some(b => {
+      const dto = b.toDTO()
+      if (dto.status === BookingStatus.CANCELLED) return false
+      // Skip bookings for the same activity (already caught by duplicate check)
+      if (excludeActivityId && dto.activityId === excludeActivityId) return false
+      const existStart = new Date(dto.startDate).getTime()
+      const existEnd = new Date(dto.endDate).getTime()
+      // Skip bookings with unparseable dates (legacy data)
+      if (isNaN(existStart) || isNaN(existEnd)) return false
+      return existStart < newEnd && existEnd > newStart
+    })
+  }
+
   public createActivityBooking(
     adultChildId: UUID,
     seniorId: UUID,

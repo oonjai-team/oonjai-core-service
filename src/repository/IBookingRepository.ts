@@ -6,6 +6,8 @@ export interface IBookingRepository {
   findById(id: string): Booking | undefined
   findByOwnerId(adultChildId: UUID, filter?: BookingFilter): Booking[]
   findByCaretakerId(caretakerId: UUID, filter?: BookingFilter): Booking[]
+  findByActivityId(activityId: string): Booking[]
+  findBySeniorId(seniorId: UUID): Booking[]
   insert(booking: Booking): string
   save(booking: Booking): boolean
   delete(booking: Booking): void

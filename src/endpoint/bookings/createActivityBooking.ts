@@ -31,10 +31,36 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
     const activity = activityService.getActivityById(activityId)
     if (!activity) return notFound("Activity not found")
 
-    const activityDTO = activity.toDTO()
-    if (activityDTO.spotsLeft < seniorIds.length) {
-      return badRequest("Not enough spots left for this activity")
+    // ── Duplicate check: prevent seniors already booked for this activity ──
+    const alreadyBooked = bookingService.getBookedSeniorIds(activityId)
+    const duplicates = seniorIds.filter(id => alreadyBooked.includes(id))
+    if (duplicates.length > 0) {
+      return badRequest(`DUPLICATE: senior(s) already booked for this activity: ${duplicates.join(", ")}`)
     }
+
+    // ── Time-overlap check: prevent seniors with conflicting bookings ──
+    const startDate = activity.getStartDate()
+    const endDate = activity.getEndDate()
+    const conflicting: string[] = []
+    for (const sid of seniorIds) {
+      if (bookingService.hasSeniorTimeConflict(new UUID(sid), startDate, endDate, activityId)) {
+        conflicting.push(sid)
+      }
+    }
+    if (conflicting.length > 0) {
+      return badRequest(`TIME_CONFLICT: senior(s) have overlapping bookings: ${conflicting.join(", ")}`)
+    }
+
+    // ── Reserve spots — addParticipants validates capacity and throws if full ──
+    try {
+      activity.addParticipants(seniorIds.length)
+    } catch (err: unknown) {
+      const message = (err as Error).message
+      if (message.startsWith("FULL")) return badRequest(message)
+      return badRequest("Cannot reserve spots: " + message)
+    }
+
+    const activityDTO = activity.toDTO()
 
     // Calculate cost
     const activityFee = activityDTO.price * seniorIds.length
@@ -47,13 +73,16 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
         new UUID(user.getId()),
         new UUID(seniorIds[0]),
         activityId,
-        activityDTO.date,
-        activityDTO.date,
+        startDate,
+        endDate,
         activityDTO.location,
         totalAmount,
         "THB",
         note ?? `Seniors: ${seniorIds.join(", ")}`,
       )
+
+      // Persist the updated participant count
+      activityService.saveActivity(activity)
 
       const bookingDTO = booking.toDTO()
 
