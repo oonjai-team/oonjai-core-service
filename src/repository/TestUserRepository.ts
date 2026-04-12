@@ -84,7 +84,8 @@ export class TestUserRepository implements IUserRepository {
       results = results.filter(c => c.hourlyRate <= filters.maxHourlyRate!)
     }
 
-    // Stage 1: Weekly availability slot check
+    // Stage 1: Weekly availability schedule check
+    // Caretaker sets this — represents their recurring weekly hours
     if (filters.startDate && filters.endDate) {
       const requiredSlots = enumerateHourSlots(filters.startDate, filters.endDate)
       if (requiredSlots.length > 0) {
@@ -96,22 +97,21 @@ export class TestUserRepository implements IUserRepository {
         })
       }
 
-      // Stage 2: Booking conflict check — exclude caretakers with overlapping bookings
-      const allBookings: any[] = (() => { try { return this.db.getAll("booking") } catch { return [] } })()
-      const startMs = filters.startDate.getTime()
-      const endMs = filters.endDate.getTime()
-
+      // Stage 2: Booked slots check
+      // bookedSlots is populated when bookings are created, released when cancelled
+      // Each slot is { date: "2026-04-15", hour: 9, bookingId: "BK-xxx" }
       results = results.filter(c => {
-        const conflicts = allBookings.filter(b =>
-          b.caretakerId === c.id &&
-          b.status !== "cancelled"
-        )
-        return !conflicts.some(b => {
-          const bStart = new Date(b.startDate).getTime()
-          const bEnd = new Date(b.endDate).getTime()
-          if (isNaN(bStart) || isNaN(bEnd)) return false
-          return bStart < endMs && bEnd > startMs
-        })
+        if (!c.bookedSlots || c.bookedSlots.length === 0) return true
+        // Build set of required date+hour combos
+        const cursor = new Date(filters.startDate!.getTime())
+        while (cursor.getTime() < filters.endDate!.getTime()) {
+          const dateStr = cursor.toISOString().split("T")[0]
+          const hour = cursor.getHours()
+          const isBooked = c.bookedSlots!.some(s => s.date === dateStr && s.hour === hour)
+          if (isBooked) return false
+          cursor.setTime(cursor.getTime() + 60 * 60 * 1000)
+        }
+        return true
       })
     }
 

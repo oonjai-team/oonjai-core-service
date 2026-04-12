@@ -54,6 +54,7 @@ import {createIncidentLog} from "@endpoint/incidentLogs/createIncidentLog"
 import {updateIncidentLog} from "@endpoint/incidentLogs/updateIncidentLog"
 import {getBookings} from "@endpoint/bookings/getBookings"
 import {createBooking} from "@endpoint/bookings/createBooking"
+import {getSeniorServiceConflicts} from "@endpoint/bookings/getSeniorServiceConflicts"
 import {getBookingById} from "@endpoint/bookings/getBookingById"
 import {updateBooking} from "@endpoint/bookings/updateBooking"
 import {cancelBooking} from "@endpoint/bookings/cancelBooking"
@@ -146,6 +147,7 @@ registry
   // Bookings
   .register(getBookings, [bookingService, userService])
   .register(createBooking, [bookingService])
+  .register(getSeniorServiceConflicts, [bookingService, seniorManagementService])
   .register(getBookingById, [bookingService])
   .register(updateBooking, [bookingService])
   .register(cancelBooking, [bookingService])

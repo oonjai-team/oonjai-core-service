@@ -40,6 +40,7 @@ export const createBooking: Endpoint<[BookingService]> = {
     } catch (err: unknown) {
       const message = (err as Error).message
       if (message.startsWith("CONFLICT")) return {status: 409, body: {message}}
+      if (message.startsWith("SENIOR_CONFLICT")) return {status: 409, body: {message}}
       if (message.startsWith("CARETAKER_NOT_FOUND")) return {status: 404, body: {message}}
       throw err
     }

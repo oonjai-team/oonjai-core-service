@@ -58,6 +58,11 @@ export class BookingService implements IService {
       throw new Error("CONFLICT: caretaker is not available for the requested time slot")
     }
 
+    // Check senior time conflicts
+    if (this.hasSeniorTimeConflict(seniorId, startDate, endDate)) {
+      throw new Error("SENIOR_CONFLICT: senior already has a booking during this time period")
+    }
+
     const caretakerDTO = caretakerProfile.toDTO()
     const durationHours = (newEnd - newStart) / (1000 * 60 * 60)
     const estimatedCost = caretakerDTO.hourlyRate * durationHours
@@ -79,6 +84,11 @@ export class BookingService implements IService {
     )
 
     const id = this.bookingRepo.insert(booking)
+
+    // Mark slots as booked on the caretaker
+    caretakerProfile.bookSlots(startDate, endDate, id)
+    this.userRepo.updateAttrProfile(caretakerId, caretakerProfile.toDTO())
+
     return new Booking({...booking.toDTO(), id: id})
   }
 
@@ -170,6 +180,19 @@ export class BookingService implements IService {
     if (!booking) throw new Error("NOT_FOUND: booking not found")
     booking.cancel(requesterId)
     this.bookingRepo.save(booking)
+
+    // Release booked slots on the caretaker
+    const dto = booking.toDTO()
+    if (dto.caretakerId) {
+      const caretakerUser = this.userRepo.findById(new UUID(dto.caretakerId))
+      if (caretakerUser) {
+        const profile = caretakerUser.getCaretaker()
+        if (profile) {
+          profile.releaseSlots(bookingId)
+          this.userRepo.updateAttrProfile(new UUID(dto.caretakerId), profile.toDTO())
+        }
+      }
+    }
   }
 
   public confirmBooking(bookingId: string, caretakerId: UUID): Booking {

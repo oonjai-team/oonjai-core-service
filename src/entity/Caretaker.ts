@@ -67,9 +67,26 @@ export class Caretaker {
       contactInfo: this.contactInfo,
       permission: this.permission,
       availability: this.availability,
+      bookedSlots: this.bookedSlots,
     }
   }
 
+  /** Mark 1-hour slots as booked for a specific booking */
+  public bookSlots(startDate: string, endDate: string, bookingId: string): void {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const cursor = new Date(start.getTime())
+    while (cursor.getTime() < end.getTime()) {
+      const dateStr = cursor.toISOString().split("T")[0]
+      this.bookedSlots.push({ date: dateStr, hour: cursor.getHours(), bookingId })
+      cursor.setTime(cursor.getTime() + 60 * 60 * 1000)
+    }
+  }
+
+  /** Remove booked slots for a cancelled booking */
+  public releaseSlots(bookingId: string): void {
+    this.bookedSlots = this.bookedSlots.filter(s => s.bookingId !== bookingId)
+  }
 
   public setProfile(data: Partial<CareTakerUserAttributes>) {
     if (data.bio !== undefined) this.bio = data.bio
@@ -78,5 +95,6 @@ export class Caretaker {
     if (data.currency !== undefined) this.currency = data.currency
     if (data.contactInfo !== undefined) this.contactInfo = data.contactInfo
     if (data.availability !== undefined) this.availability = data.availability
+    if (data.bookedSlots !== undefined) this.bookedSlots = data.bookedSlots
   }
 }
