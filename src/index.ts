@@ -52,6 +52,11 @@ import {confirmBooking} from "@endpoint/bookings/confirmBooking"
 import {endSession} from "@endpoint/bookings/endSession"
 import {submitReview} from "@endpoint/bookings/submitReview"
 
+import {TestPaymentRepository} from "@repo/TestPaymentRepository"
+import {PaymentService} from "@serv/PaymentService"
+import {initiatePayment} from "@endpoint/payments/initiatePayment"
+import {getPaymentStatus} from "@endpoint/payments/getPaymentStatus"
+import {paymentWebhook} from "@endpoint/payments/paymentWebhook"
 // Verification
 import {TestVerificationRepository} from "@repo/TestVerificationRepository"
 import {VerificationService} from "@serv/VerificationService"
@@ -66,6 +71,7 @@ const seniorRepo = new TestSeniorRepository(db)
 const statusLogRepo = new TestStatusLogRepository(db) // ← new repository for status logs
 const statusLogService = new StatusLogService(statusLogRepo)  // ← removed bookingRepo dependency from StatusLogService constructor
 const bookingRepo = new TestBookingRepository(db)
+const paymentRepo = new TestPaymentRepository(db)
 const incidentLogRepo = new TestIncidentLogRepository(db)
 const verificationRepo = new TestVerificationRepository(db)
 const oauthStateRepo = new MemoryOAuthStateRepository()
@@ -75,6 +81,7 @@ const jwtSessionService = new JWTSessionService(userRepo, process.env["JWT_SECRE
 const userService = new UserService(userRepo)
 const seniorManagementService = new SeniorManagementService(userRepo, seniorRepo)
 const bookingService = new BookingService(bookingRepo, userRepo)
+const paymentService = new PaymentService(paymentRepo, bookingRepo)
 const incidentLogService = new IncidentLogService(incidentLogRepo, bookingRepo)
 const verificationService = new VerificationService(verificationRepo, userRepo)
 const authService = new AuthService(userService, jwtSessionService)
@@ -117,6 +124,8 @@ registry
   // Seniors
   .register(addSenior, [seniorManagementService])
   .register(getAllSeniors, [seniorManagementService])
+  .register(getSeniorById, [seniorManagementService])
+  .register(deleteSenior, [seniorManagementService])
   // Status Logs
   .register(createStatusLog, [statusLogService])
   .register(getStatusLogs, [statusLogService])
@@ -129,6 +138,10 @@ registry
   .register(confirmBooking, [bookingService])
   .register(endSession, [bookingService])
   .register(submitReview, [bookingService])
+  // Payments
+  .register(initiatePayment, [paymentService])
+  .register(getPaymentStatus, [paymentService])
+  .register(paymentWebhook, [paymentService])
   // Incident Logs
   .register(getIncidentLogs, [incidentLogService, bookingService])
   .register(createIncidentLog, [incidentLogService])
