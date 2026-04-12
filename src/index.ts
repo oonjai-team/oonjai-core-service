@@ -39,6 +39,11 @@ import {GoogleOauthService} from "@serv/oauth/GoogleOauthService"
 import {TestBookingRepository} from "@repo/TestBookingRepository"
 import {BookingService} from "@serv/BookingService"
 
+import {TestActivityRepository} from "@repo/TestActivityRepository"
+import {ActivityService} from "@serv/ActivityService"
+import {getActivities} from "@endpoint/activities/getActivities"
+import {getActivityById} from "@endpoint/activities/getActivityById"
+
 import {TestIncidentLogRepository} from "@repo/TestIncidentLogRepository"
 import {IncidentLogService} from "@serv/IncidentLogService"
 import {getIncidentLogs} from "@endpoint/incidentLogs/getIncidentLogs"
@@ -74,6 +79,7 @@ const statusLogService = new StatusLogService(statusLogRepo)  // ← removed boo
 const bookingRepo = new TestBookingRepository(db)
 const paymentRepo = new TestPaymentRepository(db)
 const incidentLogRepo = new TestIncidentLogRepository(db)
+const activityRepo = new TestActivityRepository(db)
 const verificationRepo = new TestVerificationRepository(db)
 const oauthStateRepo = new MemoryOAuthStateRepository()
 
@@ -85,6 +91,7 @@ const bookingService = new BookingService(bookingRepo, userRepo)
 const paymentService = new PaymentService(paymentRepo, bookingRepo)
 const incidentLogService = new IncidentLogService(incidentLogRepo, bookingRepo)
 const verificationService = new VerificationService(verificationRepo, userRepo)
+const activityService = new ActivityService(activityRepo)
 const authService = new AuthService(userService, jwtSessionService)
 const lineAuthService = new LineOauthService(
   process.env["LINE_CHANNEL_ID"] ?? "",
@@ -150,6 +157,9 @@ registry
   .register(updateIncidentLog, [incidentLogService])
   .register(getSeniorById, [seniorManagementService])
   .register(deleteSenior, [seniorManagementService])
+  // Activities
+  .register(getActivities, [activityService])
+  .register(getActivityById, [activityService])
   // Verifications
   .register(createVerification, [verificationService])
   .register(getPendingVerifications, [verificationService])
