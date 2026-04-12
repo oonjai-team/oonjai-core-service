@@ -6,7 +6,7 @@ import {AdultChild} from "@entity/AdultChild"
 import {UUID} from "@type/uuid"
 import {Timestamp} from "@type/timestamp"
 import {RoleEnum} from "@type/user"
-import type {CaretakerFilter} from "@type/caretaker"
+import {type CaretakerFilter, enumerateHourSlots} from "@type/caretaker"
 import type {AdultChildAttributes, CareTakerUserAttributes, PartialUserDTO, UserDTO} from "@entity/UserDTO"
 
 
@@ -82,6 +82,37 @@ export class TestUserRepository implements IUserRepository {
     }
     if (filters.maxHourlyRate !== undefined) {
       results = results.filter(c => c.hourlyRate <= filters.maxHourlyRate!)
+    }
+
+    // Stage 1: Weekly availability slot check
+    if (filters.startDate && filters.endDate) {
+      const requiredSlots = enumerateHourSlots(filters.startDate, filters.endDate)
+      if (requiredSlots.length > 0) {
+        results = results.filter(c => {
+          if (!c.availability) return true // no schedule set → use isAvailable flag only
+          return requiredSlots.every(slot =>
+            c.availability![String(slot.day)]?.includes(slot.hour)
+          )
+        })
+      }
+
+      // Stage 2: Booking conflict check — exclude caretakers with overlapping bookings
+      const allBookings: any[] = (() => { try { return this.db.getAll("booking") } catch { return [] } })()
+      const startMs = filters.startDate.getTime()
+      const endMs = filters.endDate.getTime()
+
+      results = results.filter(c => {
+        const conflicts = allBookings.filter(b =>
+          b.caretakerId === c.id &&
+          b.status !== "cancelled"
+        )
+        return !conflicts.some(b => {
+          const bStart = new Date(b.startDate).getTime()
+          const bEnd = new Date(b.endDate).getTime()
+          if (isNaN(bStart) || isNaN(bEnd)) return false
+          return bStart < endMs && bEnd > startMs
+        })
+      })
     }
 
     if (filters.sortBy === "rating") {

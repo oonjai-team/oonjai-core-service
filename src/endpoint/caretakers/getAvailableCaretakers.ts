@@ -27,6 +27,14 @@ handler: async (ctx, [service], session) => {
       sortBy: q.sortBy as any,
     })
 
-    return ok(caretakers.map(c => c.toDTO()))
+    return ok(caretakers.map(c => {
+      const dto = c.toDTO()
+      return {
+        id: dto.id,
+        firstname: dto.firstname,
+        lastname: dto.lastname,
+        ...dto.caretaker,
+      }
+    }))
   },
 }

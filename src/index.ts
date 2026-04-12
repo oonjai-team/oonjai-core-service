@@ -144,7 +144,7 @@ registry
   .register(createStatusLog, [statusLogService])
   .register(getStatusLogs, [statusLogService])
   // Bookings
-  .register(getBookings, [bookingService])
+  .register(getBookings, [bookingService, userService])
   .register(createBooking, [bookingService])
   .register(getBookingById, [bookingService])
   .register(updateBooking, [bookingService])
