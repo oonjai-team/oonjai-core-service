@@ -82,6 +82,39 @@ export class BookingService implements IService {
     return new Booking({...booking.toDTO(), id: id})
   }
 
+  public createActivityBooking(
+    adultChildId: UUID,
+    seniorId: UUID,
+    activityId: string,
+    startDate: string,
+    endDate: string,
+    location: string,
+    estimatedCost: number,
+    currency: string,
+    note: string,
+  ): Booking {
+    const booking = new Booking(
+      adultChildId,
+      seniorId,
+      adultChildId, // caretakerId not applicable — use self as placeholder
+      ServiceType.ACTIVITY,
+      BookingStatus.CREATED,
+      startDate,
+      endDate,
+      location,
+      note,
+      estimatedCost,
+      currency,
+      null,
+      TimestampHelper.now()
+    )
+
+    const id = this.bookingRepo.insert(booking)
+    const saved = new Booking({...booking.toDTO(), id, activityId})
+    this.bookingRepo.save(saved)
+    return saved
+  }
+
   public getListOfBookings(userId: UUID, role: RoleEnum, filter?: BookingFilter): Booking[] {
     if (role === RoleEnum.CARETAKER) {
       return this.bookingRepo.findByCaretakerId(userId, filter)

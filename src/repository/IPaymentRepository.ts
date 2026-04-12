@@ -6,4 +6,5 @@ export interface IPaymentRepository {
   findByTransactionRef(ref: string): Payment | undefined
   insert(payment: Payment): string
   save(payment: Payment): boolean
+  findByCheckoutSessionId(sessionId: string): Payment | undefined
 }

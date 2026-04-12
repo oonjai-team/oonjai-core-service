@@ -19,6 +19,7 @@ export class Booking {
   private currency: string
   private review: Review | null
   private createdAt: Timestamp
+  private activityId: string | null
 
   constructor(dto: BookingDTO)
   constructor(
@@ -59,6 +60,7 @@ export class Booking {
       this.currency = dto.currency
       this.review = dto.review ? new Review(dto.review) : null
       this.createdAt = dto.createdAt
+      this.activityId = dto.activityId ?? null
       return
     }
 
@@ -77,6 +79,7 @@ export class Booking {
     this.review = arr[11]
     this.createdAt = arr[12]
     this.id = arr[13]
+    this.activityId = null
   }
 
   public isNew(): boolean {
@@ -119,6 +122,11 @@ export class Booking {
     if (this.status !== BookingStatus.CREATED) {
       throw new Error("FORBIDDEN: booking cannot be confirmed in its current status")
     }
+    this.status = BookingStatus.CONFIRMED
+  }
+
+  /** Confirm without caretaker validation — used for activity bookings after payment. */
+  public forceConfirm(): void {
     this.status = BookingStatus.CONFIRMED
   }
 
@@ -172,6 +180,7 @@ export class Booking {
       currency: this.currency,
       review: this.review?.toDTO() ?? null,
       createdAt: this.createdAt,
+      activityId: this.activityId,
     }
   }
 }

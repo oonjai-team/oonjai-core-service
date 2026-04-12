@@ -5,6 +5,7 @@ import type {PaymentDTO} from "@entity/PaymentDTO"
 export class Payment {
   private id?: string
   private bookingId: string
+  private checkoutSessionId: string | null
   private amount: number
   private currency: string
   private method: PaymentMethod
@@ -39,6 +40,7 @@ export class Payment {
       const dto = args[0] as PaymentDTO
       this.id = dto.id
       this.bookingId = dto.bookingId
+      this.checkoutSessionId = dto.checkoutSessionId ?? null
       this.amount = dto.amount
       this.currency = dto.currency
       this.method = dto.method
@@ -53,6 +55,7 @@ export class Payment {
 
     const arr = args as [string, number, string, PaymentMethod, PaymentStatus, string | null, string | null, string | null, string | null, Timestamp, string?]
     this.bookingId = arr[0]
+    this.checkoutSessionId = null
     this.amount = arr[1]
     this.currency = arr[2]
     this.method = arr[3]
@@ -81,6 +84,14 @@ export class Payment {
     return this.transactionRef
   }
 
+  public getBookingId(): string {
+    return this.bookingId
+  }
+
+  public getCheckoutSessionId(): string | null {
+    return this.checkoutSessionId
+  }
+
   public markAsPaid(transactionRef: string, paidAt: string): void {
     if (this.status === PaymentStatus.PAID) {
       throw new Error("CONFLICT: payment is already marked as paid")
@@ -94,6 +105,7 @@ export class Payment {
     return {
       id: this.id,
       bookingId: this.bookingId,
+      checkoutSessionId: this.checkoutSessionId,
       amount: this.amount,
       currency: this.currency,
       method: this.method,

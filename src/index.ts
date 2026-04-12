@@ -43,6 +43,7 @@ import {TestActivityRepository} from "@repo/TestActivityRepository"
 import {ActivityService} from "@serv/ActivityService"
 import {getActivities} from "@endpoint/activities/getActivities"
 import {getActivityById} from "@endpoint/activities/getActivityById"
+import {createActivityBooking} from "@endpoint/bookings/createActivityBooking"
 
 import {TestIncidentLogRepository} from "@repo/TestIncidentLogRepository"
 import {IncidentLogService} from "@serv/IncidentLogService"
@@ -63,6 +64,8 @@ import {PaymentService} from "@serv/PaymentService"
 import {initiatePayment} from "@endpoint/payments/initiatePayment"
 import {getPaymentStatus} from "@endpoint/payments/getPaymentStatus"
 import {paymentWebhook} from "@endpoint/payments/paymentWebhook"
+import {createCheckoutSession} from "@endpoint/payments/createCheckoutSession"
+import {completeCheckout} from "@endpoint/payments/completeCheckout"
 // Verification
 import {TestVerificationRepository} from "@repo/TestVerificationRepository"
 import {VerificationService} from "@serv/VerificationService"
@@ -151,6 +154,8 @@ registry
   .register(initiatePayment, [paymentService])
   .register(getPaymentStatus, [paymentService])
   .register(paymentWebhook, [paymentService])
+  .register(createCheckoutSession, [paymentService])
+  .register(completeCheckout, [paymentService])
   // Incident Logs
   .register(getIncidentLogs, [incidentLogService, bookingService])
   .register(createIncidentLog, [incidentLogService])
@@ -160,6 +165,8 @@ registry
   // Activities
   .register(getActivities, [activityService])
   .register(getActivityById, [activityService])
+  // Activity Bookings
+  .register(createActivityBooking, [bookingService, activityService])
   // Verifications
   .register(createVerification, [verificationService])
   .register(getPendingVerifications, [verificationService])

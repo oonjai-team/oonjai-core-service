@@ -4,6 +4,7 @@ import type {PaymentMethod, PaymentStatus} from "@type/payment"
 export interface PaymentDTO {
   id: string | undefined
   bookingId: string
+  checkoutSessionId?: string
   amount: number
   currency: string
   method: PaymentMethod

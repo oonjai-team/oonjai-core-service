@@ -17,4 +17,5 @@ export interface BookingDTO {
   currency: string
   review: ReviewDTO | null
   createdAt: Timestamp
+  activityId?: string | null
 }

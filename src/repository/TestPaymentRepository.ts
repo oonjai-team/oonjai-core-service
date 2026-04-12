@@ -30,6 +30,13 @@ export class TestPaymentRepository implements IPaymentRepository {
     return new Payment({...record})
   }
 
+  public findByCheckoutSessionId(sessionId: string): Payment | undefined {
+    const all = this.db.getAll("payment")
+    const record = all.find(r => r.checkoutSessionId === sessionId)
+    if (!record) return undefined
+    return new Payment({...record})
+  }
+
   public insert(payment: Payment): string {
     const id = crypto.randomUUID()
     const dto = payment.toDTO()
