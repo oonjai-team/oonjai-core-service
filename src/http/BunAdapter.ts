@@ -104,9 +104,35 @@ export function serveBun(router: Router, options: BunAdapterOptions = {}): void 
       const resContentType = result.contentType ?? "application/json"
       responseHeaders.set("Content-Type", resContentType)
 
+      // Wrap JSON responses in standardised APIResponse envelope:
+      //   { status: 0=SUCCESS | 1=FAILED | 2=ERROR, message: string, payload: T | null }
+      let finalBody = result.body
+      if (resContentType === "application/json" && result.status !== 204) {
+        const httpStatus = result.status
+        let apiStatus = 0   // SUCCESS
+        let message   = ""
+        let payload   = result.body ?? null
+
+        if (httpStatus >= 400 && httpStatus < 500) {
+          apiStatus = 1 // FAILED
+          if (payload && typeof payload === "object" && "message" in (payload as Record<string, unknown>)) {
+            message = (payload as Record<string, string>).message
+            payload = null
+          }
+        } else if (httpStatus >= 500) {
+          apiStatus = 2 // ERROR
+          if (payload && typeof payload === "object" && "message" in (payload as Record<string, unknown>)) {
+            message = (payload as Record<string, string>).message
+            payload = null
+          }
+        }
+
+        finalBody = { status: apiStatus, message, payload }
+      }
+
       const responseBody =
-        result.body !== undefined
-          ? resContentType.startsWith("text/") ? (result.body as string) : JSON.stringify(result.body)
+        finalBody !== undefined
+          ? resContentType.startsWith("text/") ? (finalBody as string) : JSON.stringify(finalBody)
           : null
 
       return new Response(responseBody, {status: result.status, headers: responseHeaders})

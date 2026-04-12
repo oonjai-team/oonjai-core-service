@@ -14,10 +14,20 @@ export const updateUser: Endpoint<[UserService]> = {
 
     const body = ctx.body as Record<string, unknown>
 
+    const adultChild = body?.adultChild as Record<string, unknown> | undefined
+
     service.updateUser(new UUID(session?.getUserId()), {
       firstname: body?.firstname as string | undefined,
       lastname: body?.lastname as string | undefined,
       email: body?.email as string | undefined,
+      ...(adultChild ? {
+        adultChild: {
+          phone: adultChild.phone as string | undefined,
+          relationship: adultChild.relationship as string | undefined,
+          goal: adultChild.goal as string | undefined,
+          concerns: adultChild.concerns as string[] | undefined,
+        },
+      } : {}),
     })
 
     return ok()

@@ -2,11 +2,12 @@ import type {IUserRepository} from "./IUserRepository"
 import type {ITestDatabase} from "../lib/TestDatabase"
 import {User} from "@entity/User"
 import {Caretaker} from "@entity/Caretaker"
+import {AdultChild} from "@entity/AdultChild"
 import {UUID} from "@type/uuid"
 import {Timestamp} from "@type/timestamp"
 import {RoleEnum} from "@type/user"
 import type {CaretakerFilter} from "@type/caretaker"
-import type {CareTakerUserAttributes, PartialUserDTO, UserDTO} from "@entity/UserDTO"
+import type {AdultChildAttributes, CareTakerUserAttributes, PartialUserDTO, UserDTO} from "@entity/UserDTO"
 
 
 export class TestUserRepository implements IUserRepository {
@@ -19,6 +20,9 @@ export class TestUserRepository implements IUserRepository {
       if (user.isCaretaker()) {
         this.db.set("caretaker", id, user.getCaretaker()?.toDTO() ?? {})
       }
+      if (user.isAdultChild() && user.getAdultChild()) {
+        this.db.set("adultChild", id, user.getAdultChild()!.toDTO())
+      }
       return [true, id]
     }
 
@@ -30,6 +34,9 @@ export class TestUserRepository implements IUserRepository {
     this.db.update("user", uid, user.toDTO())
     if (user.isCaretaker()) {
       this.db.update("caretaker", uid, user.getCaretaker()?.toDTO() ?? {})
+    }
+    if (user.isAdultChild() && user.getAdultChild()) {
+      this.db.update("adultChild", uid, user.getAdultChild()!.toDTO())
     }
     return [true, undefined]
   }
@@ -100,7 +107,7 @@ export class TestUserRepository implements IUserRepository {
     return mapped
   }
 
-  updateUser(id: UUID, data: Partial<Omit<UserDTO, "caretaker">>): boolean {
+  updateUser(id: UUID, data: Partial<Omit<UserDTO, "caretaker" | "adultChild">>): boolean {
     try {
       this.db.update("user", id, data)
       return true
@@ -118,14 +125,38 @@ export class TestUserRepository implements IUserRepository {
     }
   }
 
+  updateAdultChildProfile(id: UUID, data: Partial<AdultChildAttributes>): boolean {
+    try {
+      // Use set() to upsert — the record may not exist yet (first onboarding)
+      const existing = (() => { try { return this.db.get("adultChild", id) } catch { return {} } })()
+      const merged = { ...existing, ...data }
+      delete merged["id"]
+      this.db.set("adultChild", id, merged)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+
   private reconstruct(record: any, id: UUID): User {
     if (record.role === RoleEnum.CARETAKER) {
-      // get caretaker
       const dto = this.db.get("caretaker", id)
       const ct = new Caretaker(dto)
-
       return new User(record.email, record.firstname, record.lastname, new Timestamp(record.createdAt), RoleEnum.CARETAKER, id, ct)
     }
+
+    if (record.role === RoleEnum.ADULTCHILD) {
+      try {
+        const dto = this.db.get("adultChild", id)
+        if (dto) {
+          const ac = new AdultChild(dto)
+          return new User(record.email, record.firstname, record.lastname, new Timestamp(record.createdAt), RoleEnum.ADULTCHILD, id, undefined, ac)
+        }
+      } catch (_) {
+        // no adultChild record yet (not onboarded)
+      }
+    }
+
     return new User(record.email, record.firstname, record.lastname, new Timestamp(record.createdAt), record.role, id)
   }
 }

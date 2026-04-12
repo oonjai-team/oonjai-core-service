@@ -11,9 +11,20 @@ export interface UserDTO{
   createdAt: Timestamp
   role: RoleEnum
   caretaker?: CareTakerUserAttributes
+  adultChild?: AdultChildAttributes
 }
 
-export type PartialUserDTO = Partial<Omit<UserDTO, "caretaker"> & {caretaker?: Partial<CareTakerUserAttributes>}>
+export type PartialUserDTO = Partial<Omit<UserDTO, "caretaker" | "adultChild"> & {
+  caretaker?: Partial<CareTakerUserAttributes>
+  adultChild?: Partial<AdultChildAttributes>
+}>
+
+export interface AdultChildAttributes {
+  phone: string
+  relationship: string
+  goal: string
+  concerns: string[]
+}
 
 export interface CareTakerUserAttributes {
   bio: string

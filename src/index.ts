@@ -22,6 +22,7 @@ import {refreshToken} from "@endpoint/auth/refreshToken"
 import {getCurrentSession} from "@endpoint/auth/getCurrentSession"
 import {oauthLogin} from "@endpoint/auth/oauthLogin"
 import {oauthCallback} from "@endpoint/auth/oauthCallback"
+import {onboarding} from "@endpoint/auth/onboarding"
 import {me} from "@endpoint/users/me"
 import {getAvailableCaretakers} from "@endpoint/caretakers/getAvailableCaretakers"
 import {getCaretakerById} from "@endpoint/caretakers/getCaretakerById"
@@ -113,6 +114,7 @@ registry
   // LINE OAuth
   .register(oauthLogin, [oauthReg])
   .register(oauthCallback, [oauthReg, authService])
+  .register(onboarding, [userService])
   .register(getCurrentSession, [])
   // Users
   .register(updateUser, [userService])
@@ -153,4 +155,4 @@ registry
   .register(getPendingVerifications, [verificationService])
   .register(updateVerification, [verificationService])
 
-serveBun(router, {port: 3000})
+serveBun(router, {port: 3030})

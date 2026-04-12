@@ -64,8 +64,11 @@ export class UserService implements IService {
     const copy = {...data}
     if (copy.caretaker) {
       this.userRepo.updateAttrProfile(id, copy.caretaker)
-      // @ts-ignore
-      delete copy["caretaker"]
+      delete copy.caretaker
+    }
+    if (copy.adultChild) {
+      this.userRepo.updateAdultChildProfile(id, copy.adultChild)
+      delete copy.adultChild
     }
     this.userRepo.updateUser(id, copy)
   }
