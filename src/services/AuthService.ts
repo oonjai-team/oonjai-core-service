@@ -3,8 +3,9 @@ import type {UserService} from "@serv/UserService"
 import type {IService} from "@serv/IService"
 import type {SessionToken} from "@type/session"
 import type {User} from "@entity/User"
-import type {RoleEnum} from "@type/user"
+import {RoleEnum} from "@type/user"
 import {UUID} from "@type/uuid"
+import type {CareTakerUserAttributes} from "@entity/UserDTO"
 
 export class AuthService implements IService {
   constructor(
@@ -50,10 +51,17 @@ export class AuthService implements IService {
     oauthToken: string | undefined,
     firstname: string,
     lastname: string,
-    role: RoleEnum
+    role: RoleEnum,
+    caretakerAttr?: CareTakerUserAttributes
   ): Promise<User> {
     // TODO: when OAuth provider is connected, make oauthToken required and verify it here
     void oauthToken
+
+    if (role === RoleEnum.CARETAKER) {
+      if (!caretakerAttr) throw new Error("caretakerAttr required for caretaker registration")
+      const id = this.userService.createCaretaker(email, firstname, lastname, caretakerAttr)
+      return this.userService.getUserById(id)!
+    }
 
     const id = this.userService.createUser(email, firstname, lastname, role)
     return this.userService.getUserById(id)!

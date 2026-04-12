@@ -10,22 +10,19 @@ export class TestSeniorRepository implements ISeniorRepository {
   }
 
   public save(senior: Senior): boolean {
-    this.db.update("senior", senior.getId() as string, senior.toDTO())
+    const id = senior.getId()
+    if (!id) return false
+    this.db.update("senior", id, senior.toDTO())
     return true
   }
 
   public findById(id: UUID): Senior | undefined {
-    try {
-      const dto = this.db.get("senior", id.toString())
-      return new Senior(dto)
-    } catch (e) {
-      return undefined
-    }
+    return this.db.get("senior", id)
   }
 
   public findAllByAdultChildId(adultChildId: UUID): Senior[] {
     return this.db.getAll("senior")
-      .filter(dto => dto.adultChildId.toString() === adultChildId.toString())
+      .filter(dto => (dto.adultChildId.toString() === adultChildId.toString()))
       .map(dto => new Senior(dto))
   }
 
@@ -34,7 +31,7 @@ export class TestSeniorRepository implements ISeniorRepository {
       throw new Error("cannot delete")
     }
 
-    this.db.delete("senior", senior.getId() as string)
+    this.db.delete("senior", senior.getId() as UUID)
   }
 
   insert(senior: Senior): UUID {

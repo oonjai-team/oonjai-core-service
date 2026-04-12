@@ -5,7 +5,10 @@
   "scripts": {
     "build": "tsc",
     "prepare": "husky",
-    "serve": "bun run src/index.ts"
+    "dev": "DEBUG=true bun serve",
+    "serve": "bun run src/index.ts",
+    "test": "bun test",
+    "test-suite": "http-server ./debug"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.1",
