@@ -9,7 +9,7 @@ export const getPendingVerifications: Endpoint<[VerificationService]> = {
     if (!user) return unauthorized("User must be logged in")
     if (!user.isAdmin()) return { status: 403, body: { message: "Only admins can view pending verifications" } }
 
-    const verifications = service.getPendingVerifications()
+    const verifications = await service.getPendingVerifications()
     return ok(verifications.map((v) => v.toDTO()))
   },
 }

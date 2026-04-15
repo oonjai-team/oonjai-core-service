@@ -13,15 +13,15 @@ export class ActivityService implements IService {
     return "ActivityService"
   }
 
-  public getAllActivities(): Activity[] {
+  public async getAllActivities(): Promise<Activity[]> {
     return this.activityRepo.findAll()
   }
 
-  public getActivityById(id: string): Activity | undefined {
+  public async getActivityById(id: string): Promise<Activity | undefined> {
     return this.activityRepo.findById(id)
   }
 
-  public saveActivity(activity: Activity): void {
-    this.activityRepo.save(activity)
+  public async saveActivity(activity: Activity): Promise<void> {
+    await this.activityRepo.save(activity)
   }
 }

@@ -1,5 +1,5 @@
-import {TestUserRepository} from "@repo/TestUserRepository"
-import {TestSeniorRepository} from "@repo/TestSeniorRepository"
+import {PgUserRepository} from "@repo/PgUserRepository"
+import {PgSeniorRepository} from "@repo/PgSeniorRepository"
 import {UserService} from "@serv/UserService"
 import {SeniorManagementService} from "@serv/SeniorManagementService"
 import {AuthService} from "@serv/AuthService"
@@ -8,7 +8,6 @@ import {LineOauthService} from "@serv/oauth/LineOauthService"
 import {Router} from "@http/Router"
 import {EndpointRegistry} from "@http/EndpointRegistry"
 import {serveBun} from "@http/BunAdapter"
-import {TestFSDatabase} from "./lib/TestFSDatabase"
 
 import {updateUser} from "@endpoint/users/updateUser"
 import {addSenior} from "@endpoint/seniors/addSenior"
@@ -28,7 +27,7 @@ import {getAvailableCaretakers} from "@endpoint/caretakers/getAvailableCaretaker
 import {getCaretakerById} from "@endpoint/caretakers/getCaretakerById"
 import {updateCaretakerProfile} from "@endpoint/caretakers/updateCaretakerProfile"
 
-import {TestStatusLogRepository} from "@repo/TestStatusLogRepository"
+import {PgStatusLogRepository} from "@repo/PgStatusLogRepository"
 import {StatusLogService} from "@serv/StatusLogService"
 import {getStatusLogs} from "@endpoint/statusLogs/getStatusLogs"
 import {createStatusLog} from "@endpoint/statusLogs/createStatusLog"
@@ -36,10 +35,10 @@ import {MemoryOAuthStateRepository} from "@repo/MemoryOAuthStateRepository"
 import {OAuthRegistry} from "@serv/oauth/OAuthRegistry"
 import {GoogleOauthService} from "@serv/oauth/GoogleOauthService"
 
-import {TestBookingRepository} from "@repo/TestBookingRepository"
+import {PgBookingRepository} from "@repo/PgBookingRepository"
 import {BookingService} from "@serv/BookingService"
 
-import {TestActivityRepository} from "@repo/TestActivityRepository"
+import {PgActivityRepository} from "@repo/PgActivityRepository"
 import {ActivityService} from "@serv/ActivityService"
 import {getActivities} from "@endpoint/activities/getActivities"
 import {getActivityById} from "@endpoint/activities/getActivityById"
@@ -47,7 +46,7 @@ import {getBookedSeniors} from "@endpoint/activities/getBookedSeniors"
 import {getSeniorConflicts} from "@endpoint/activities/getSeniorConflicts"
 import {createActivityBooking} from "@endpoint/bookings/createActivityBooking"
 
-import {TestIncidentLogRepository} from "@repo/TestIncidentLogRepository"
+import {PgIncidentLogRepository} from "@repo/PgIncidentLogRepository"
 import {IncidentLogService} from "@serv/IncidentLogService"
 import {getIncidentLogs} from "@endpoint/incidentLogs/getIncidentLogs"
 import {createIncidentLog} from "@endpoint/incidentLogs/createIncidentLog"
@@ -62,7 +61,7 @@ import {confirmBooking} from "@endpoint/bookings/confirmBooking"
 import {endSession} from "@endpoint/bookings/endSession"
 import {submitReview} from "@endpoint/bookings/submitReview"
 
-import {TestPaymentRepository} from "@repo/TestPaymentRepository"
+import {PgPaymentRepository} from "@repo/PgPaymentRepository"
 import {PaymentService} from "@serv/PaymentService"
 import {initiatePayment} from "@endpoint/payments/initiatePayment"
 import {getPaymentStatus} from "@endpoint/payments/getPaymentStatus"
@@ -70,23 +69,21 @@ import {paymentWebhook} from "@endpoint/payments/paymentWebhook"
 import {createCheckoutSession} from "@endpoint/payments/createCheckoutSession"
 import {completeCheckout} from "@endpoint/payments/completeCheckout"
 // Verification
-import {TestVerificationRepository} from "@repo/TestVerificationRepository"
+import {PgVerificationRepository} from "@repo/PgVerificationRepository"
 import {VerificationService} from "@serv/VerificationService"
 import {createVerification} from "@endpoint/verifications/createVerification"
 import {getPendingVerifications} from "@endpoint/verifications/getPendingVerifications"
 import {updateVerification} from "@endpoint/verifications/updateVerification"
 
-// ── Infrastructure ────────────────────────────────────────────────────────────
-const db = new TestFSDatabase()
-const userRepo = new TestUserRepository(db)
-const seniorRepo = new TestSeniorRepository(db)
-const statusLogRepo = new TestStatusLogRepository(db) // ← new repository for status logs
-const statusLogService = new StatusLogService(statusLogRepo)  // ← removed bookingRepo dependency from StatusLogService constructor
-const bookingRepo = new TestBookingRepository(db)
-const paymentRepo = new TestPaymentRepository(db)
-const incidentLogRepo = new TestIncidentLogRepository(db)
-const activityRepo = new TestActivityRepository(db)
-const verificationRepo = new TestVerificationRepository(db)
+// ── Infrastructure (Postgres) ────────────────────────────────────────────────
+const userRepo = new PgUserRepository()
+const seniorRepo = new PgSeniorRepository()
+const statusLogRepo = new PgStatusLogRepository()
+const bookingRepo = new PgBookingRepository()
+const paymentRepo = new PgPaymentRepository()
+const incidentLogRepo = new PgIncidentLogRepository()
+const activityRepo = new PgActivityRepository()
+const verificationRepo = new PgVerificationRepository()
 const oauthStateRepo = new MemoryOAuthStateRepository()
 
 // ── Services ──────────────────────────────────────────────────────────────────
@@ -98,6 +95,7 @@ const paymentService = new PaymentService(paymentRepo, bookingRepo)
 const incidentLogService = new IncidentLogService(incidentLogRepo, bookingRepo)
 const verificationService = new VerificationService(verificationRepo, userRepo)
 const activityService = new ActivityService(activityRepo)
+const statusLogService = new StatusLogService(statusLogRepo)
 const authService = new AuthService(userService, jwtSessionService)
 const lineAuthService = new LineOauthService(
   process.env["LINE_CHANNEL_ID"] ?? "",
@@ -178,4 +176,5 @@ registry
   .register(getPendingVerifications, [verificationService])
   .register(updateVerification, [verificationService])
 
-serveBun(router, {port: 3030})
+const port = Number(process.env.PORT) || 3030
+serveBun(router, {port})

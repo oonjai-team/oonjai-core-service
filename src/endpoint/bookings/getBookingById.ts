@@ -11,7 +11,7 @@ export const getBookingById: Endpoint<[BookingService]> = {
     }
 
     const bookingId = ctx.params.bookingId as string
-    const booking = service.getBookingDetail(bookingId)
+    const booking = await service.getBookingDetail(bookingId)
     if (!booking) {
       return notFound("booking not found")
     }

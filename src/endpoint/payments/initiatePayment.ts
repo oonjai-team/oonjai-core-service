@@ -24,7 +24,7 @@ export const initiatePayment: Endpoint<[PaymentService]> = {
     }
 
     try {
-      const payment = service.initiatePayment(
+      const payment = await service.initiatePayment(
         ctx.params["bookingId"] as string,
         new UUID(user.getId()),
         body.method as PaymentMethod,

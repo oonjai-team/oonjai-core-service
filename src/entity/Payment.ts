@@ -105,7 +105,7 @@ export class Payment {
     return {
       id: this.id,
       bookingId: this.bookingId,
-      checkoutSessionId: this.checkoutSessionId,
+      checkoutSessionId: this.checkoutSessionId ?? undefined,
       amount: this.amount,
       currency: this.currency,
       method: this.method,

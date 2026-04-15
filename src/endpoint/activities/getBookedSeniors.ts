@@ -8,7 +8,7 @@ export const getBookedSeniors: Endpoint<[BookingService]> = {
     if (!session?.getUser()) return unauthorized()
 
     const {activityId} = ctx.params
-    const seniorIds = bookingService.getBookedSeniorIds(activityId)
+    const seniorIds = await bookingService.getBookedSeniorIds(activityId!)
 
     return ok({seniorIds})
   },

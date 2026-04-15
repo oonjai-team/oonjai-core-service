@@ -136,7 +136,7 @@ export class JWTSessionService implements ISessionService {
     if (!payload) return null
     if (payload.type !== "access") return null
 
-    const user = this.userRepo.findById(new UUID(payload.userId))
+    const user = await this.userRepo.findById(new UUID(payload.userId))
     if (!user) return null
 
     const session = new Session(token, payload.userId, user, payload.iat, payload.exp)

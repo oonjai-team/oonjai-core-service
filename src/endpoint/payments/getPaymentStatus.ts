@@ -10,7 +10,7 @@ export const getPaymentStatus: Endpoint<[PaymentService]> = {
     if (!user) return unauthorized()
 
     try {
-      const payment = service.getPaymentStatus(
+      const payment = await service.getPaymentStatus(
         ctx.params["bookingId"] as string,
         new UUID(user.getId()),
       )

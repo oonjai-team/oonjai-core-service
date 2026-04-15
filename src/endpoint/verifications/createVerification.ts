@@ -25,7 +25,7 @@ export const createVerification: Endpoint<[VerificationService]> = {
     if (!userId) return unauthorized("Invalid session")
 
     try {
-      const verification = service.createVerification(
+      const verification = await service.createVerification(
         new UUID(userId.toString()),
         new UUID(userId.toString()),
         body.uploaderType as UploaderType,

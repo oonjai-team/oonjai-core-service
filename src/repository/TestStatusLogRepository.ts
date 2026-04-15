@@ -6,24 +6,24 @@ import type {UUID} from "@type/uuid"
 export class TestStatusLogRepository implements IStatusLogRepository {
 constructor(private db: ITestDatabase) {}
 
-  public save(log: StatusLog): boolean {
+  public async save(log: StatusLog): Promise<boolean> {
   const id = log.getId()
   if (!id) return false
     this.db.update("statusLog", id, log.toDTO())
     return true
   }
 
-  public findById(id: UUID): StatusLog | undefined {
+  public async findById(id: UUID): Promise<StatusLog | undefined> {
     return this.db.get("statusLog", id)
   }
 
-  public findByBookingId(bookingId: string): StatusLog[] {
+  public async findByBookingId(bookingId: string): Promise<StatusLog[]> {
     return this.db.getAll("statusLog")
       .filter(dto => dto.bookingId === bookingId)
       .map(dto => new StatusLog(dto))
   }
 
-  public insert(log: StatusLog): UUID {
+  public async insert(log: StatusLog): Promise<UUID> {
     return this.db.insert("statusLog", log.toDTO())
   }
 }

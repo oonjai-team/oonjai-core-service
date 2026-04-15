@@ -5,7 +5,7 @@ export const getActivities: Endpoint<[ActivityService]> = {
   method: "GET",
   path: "/activities",
   handler: async (_ctx, [service]) => {
-    const activities = service.getAllActivities()
+    const activities = await service.getAllActivities()
     return ok(activities.map(a => a.toDTO()))
   },
 }

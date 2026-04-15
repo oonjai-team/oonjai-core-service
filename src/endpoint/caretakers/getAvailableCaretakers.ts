@@ -16,7 +16,7 @@ handler: async (ctx, [service], session) => {
       return badRequest("serviceType, startDate and endDate are required")
     }
 
-    const caretakers = service.getAvailableCaretakers({
+    const caretakers = await service.getAvailableCaretakers({
       serviceType: q.serviceType,
       startDate: new Date(q.startDate),
       endDate: new Date(q.endDate),

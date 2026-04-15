@@ -29,7 +29,7 @@ export const createCheckoutSession: Endpoint<[PaymentService]> = {
     }
 
     try {
-      const result = service.createCheckoutSession(
+      const result = await service.createCheckoutSession(
         bookingId,
         amount,
         currency,

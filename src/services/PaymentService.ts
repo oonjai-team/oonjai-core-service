@@ -19,14 +19,14 @@ export class PaymentService implements IService {
     return "PaymentService"
   }
 
-  public initiatePayment(
+  public async initiatePayment(
     bookingId: string,
     requesterId: UUID,
     method: PaymentMethod,
     amount: number,
     currency: string,
-  ): Payment {
-    const booking = this.bookingRepo.findById(bookingId)
+  ): Promise<Payment> {
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) {
       throw new Error("NOT_FOUND: booking not found")
     }
@@ -40,7 +40,7 @@ export class PaymentService implements IService {
       throw new Error("BAD_REQUEST: amount does not match booking estimated cost")
     }
 
-    const existing = this.paymentRepo.findByBookingId(bookingId)
+    const existing = await this.paymentRepo.findByBookingId(bookingId)
     if (existing) {
       const s = existing.getStatus()
       if (s === PaymentStatus.PENDING || s === PaymentStatus.PAID) {
@@ -70,7 +70,7 @@ export class PaymentService implements IService {
       TimestampHelper.now(),
     )
 
-    const id = this.paymentRepo.insert(payment)
+    const id = await this.paymentRepo.insert(payment)
     return new Payment({...payment.toDTO(), id})
   }
 
@@ -78,13 +78,13 @@ export class PaymentService implements IService {
    * Creates a checkout session for a single booking.
    * Returns the Payment with a checkoutUrl that simulates a Stripe-like redirect flow.
    */
-  public createCheckoutSession(
+  public async createCheckoutSession(
     bookingId: string,
     amount: number,
     currency: string,
     method: PaymentMethod,
-  ): { payment: Payment; checkoutUrl: string } {
-    const booking = this.bookingRepo.findById(bookingId)
+  ): Promise<{ payment: Payment; checkoutUrl: string }> {
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) throw new Error("NOT_FOUND: booking not found")
 
     const checkoutSessionId = crypto.randomUUID()
@@ -105,7 +105,7 @@ export class PaymentService implements IService {
       createdAt: TimestampHelper.now(),
     })
 
-    const paymentId = this.paymentRepo.insert(payment)
+    const paymentId = await this.paymentRepo.insert(payment)
     const saved = new Payment({...payment.toDTO(), id: paymentId})
 
     const checkoutUrl = `${FRONTEND_URL}/payment/checkout?session=${checkoutSessionId}&amount=${amount}&currency=${currency}`
@@ -118,8 +118,8 @@ export class PaymentService implements IService {
    * Marks payment as PAID and the associated booking as CONFIRMED.
    * Returns the redirect URL for the frontend confirmation page.
    */
-  public completeCheckout(checkoutSessionId: string): { payment: Payment; redirectUrl: string } {
-    const payment = this.paymentRepo.findByCheckoutSessionId(checkoutSessionId)
+  public async completeCheckout(checkoutSessionId: string): Promise<{ payment: Payment; redirectUrl: string }> {
+    const payment = await this.paymentRepo.findByCheckoutSessionId(checkoutSessionId)
     if (!payment) {
       throw new Error("NOT_FOUND: checkout session not found")
     }
@@ -131,18 +131,18 @@ export class PaymentService implements IService {
     // Mark payment as paid
     const now = new Date().toISOString()
     payment.markAsPaid(payment.getTransactionRef() ?? crypto.randomUUID(), now)
-    this.paymentRepo.save(payment)
+    await this.paymentRepo.save(payment)
 
     // Confirm the associated booking
     const bookingId = payment.getBookingId()
-    const booking = this.bookingRepo.findById(bookingId)
+    const booking = await this.bookingRepo.findById(bookingId)
     let activityId: string | null = null
 
     if (booking) {
       const dto = booking.toDTO()
       activityId = dto.activityId ?? null
       booking.forceConfirm()
-      this.bookingRepo.save(booking)
+      await this.bookingRepo.save(booking)
     }
 
     const paymentDto = payment.toDTO()
@@ -153,8 +153,8 @@ export class PaymentService implements IService {
     return {payment, redirectUrl}
   }
 
-  public getPaymentStatus(bookingId: string, requesterId: UUID): Payment {
-    const booking = this.bookingRepo.findById(bookingId)
+  public async getPaymentStatus(bookingId: string, requesterId: UUID): Promise<Payment> {
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) {
       throw new Error("NOT_FOUND: booking not found")
     }
@@ -163,7 +163,7 @@ export class PaymentService implements IService {
       throw new Error("FORBIDDEN: booking does not belong to current user")
     }
 
-    const payment = this.paymentRepo.findByBookingId(bookingId)
+    const payment = await this.paymentRepo.findByBookingId(bookingId)
     if (!payment) {
       throw new Error("NOT_FOUND: no payment found for this booking")
     }
@@ -171,14 +171,14 @@ export class PaymentService implements IService {
     return payment
   }
 
-  public handleWebhook(transactionRef: string, paidAt: string): Payment {
-    const payment = this.paymentRepo.findByTransactionRef(transactionRef)
+  public async handleWebhook(transactionRef: string, paidAt: string): Promise<Payment> {
+    const payment = await this.paymentRepo.findByTransactionRef(transactionRef)
     if (!payment) {
       throw new Error("NOT_FOUND: no payment found for transaction ref")
     }
 
     payment.markAsPaid(transactionRef, paidAt)
-    this.paymentRepo.save(payment)
+    await this.paymentRepo.save(payment)
     return payment
   }
 }

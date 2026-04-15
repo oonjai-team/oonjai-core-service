@@ -25,7 +25,7 @@ handler: async (ctx, [service], session) => {
     const bookingId = ctx.params?.bookingId as string
 
     try {
-      const log = service.createStatusLog(
+      const log = await service.createStatusLog(
         bookingId,
         new UUID(user.getId()),
         body.statusType as CareSessionStatus,

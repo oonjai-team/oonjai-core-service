@@ -77,7 +77,7 @@ export class Caretaker {
     const end = new Date(endDate)
     const cursor = new Date(start.getTime())
     while (cursor.getTime() < end.getTime()) {
-      const dateStr = cursor.toISOString().split("T")[0]
+      const dateStr = cursor.toISOString().split("T")[0] ?? ""
       this.bookedSlots.push({ date: dateStr, hour: cursor.getHours(), bookingId })
       cursor.setTime(cursor.getTime() + 60 * 60 * 1000)
     }

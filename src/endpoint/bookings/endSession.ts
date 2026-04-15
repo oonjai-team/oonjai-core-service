@@ -17,7 +17,7 @@ export const endSession: Endpoint<[BookingService]> = {
     const bookingId = ctx.params.bookingId as string
 
     try {
-      const booking = service.endSession(bookingId, new UUID(user.getId()))
+      const booking = await service.endSession(bookingId, new UUID(user.getId()))
       return ok(booking.toDTO())
     } catch (err: unknown) {
       const message = (err as Error).message

@@ -20,7 +20,7 @@ export const getSeniorById: Endpoint<[SeniorManagementService]> = {
     const adultChildId = new UUID(user.getId())
     const seniorId = new UUID(seniorIdParam)
 
-    const senior = service.getSeniorById(adultChildId, seniorId)
+    const senior = await service.getSeniorById(adultChildId, seniorId)
 
     if (!senior) {
       return notFound("Senior not found")

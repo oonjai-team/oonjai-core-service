@@ -66,13 +66,19 @@ export const withCookies = (cookies: CookieOptions[], base: HttpResult): HttpRes
   cookies: [...(base.cookies ?? []), ...cookies],
 })
 
-/** Build the standard httpOnly access + refresh token cookie pair. */
+/**
+ * Build the standard httpOnly access + refresh token cookie pair.
+ * Uses SameSite=None + Secure for cross-domain deployments
+ * (e.g. Cloud Run backend + Netlify frontend).
+ * When you move both to the same domain, switch to SameSite=Lax and drop Secure.
+ */
 export const sessionCookies = (accessToken: string, refreshToken: string): CookieOptions[] => [
   {
     name: "access_token",
     value: accessToken,
     httpOnly: true,
-    sameSite: "Lax",
+    secure: true,
+    sameSite: "None",
     maxAge: 60 * 60,          // 1 hour — mirrors ACCESS_TTL_SECONDS
     path: "/",
   },
@@ -80,7 +86,8 @@ export const sessionCookies = (accessToken: string, refreshToken: string): Cooki
     name: "refresh_token",
     value: refreshToken,
     httpOnly: true,
-    sameSite: "Lax",
+    secure: true,
+    sameSite: "None",
     maxAge: 60 * 60 * 24 * 7, // 7 days — mirrors REFRESH_TTL_SECONDS
     path: "/",
   },
@@ -88,6 +95,6 @@ export const sessionCookies = (accessToken: string, refreshToken: string): Cooki
 
 /** Expire both session cookies (used on logout). Must mirror the same attributes as sessionCookies so the browser replaces them. */
 export const clearSessionCookies = (): CookieOptions[] => [
-  { name: "access_token",  value: "", maxAge: 0, path: "/", httpOnly: true, sameSite: "Lax" },
-  { name: "refresh_token", value: "", maxAge: 0, path: "/", httpOnly: true, sameSite: "Lax" },
+  { name: "access_token",  value: "", maxAge: 0, path: "/", httpOnly: true, secure: true, sameSite: "None" },
+  { name: "refresh_token", value: "", maxAge: 0, path: "/", httpOnly: true, secure: true, sameSite: "None" },
 ]

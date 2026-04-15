@@ -23,7 +23,7 @@ export const createIncidentLog: Endpoint<[IncidentLogService]> = {
     const bookingId = ctx.params?.bookingId as string
 
     try {
-      const log = service.createIncidentLog(
+      const log = await service.createIncidentLog(
         bookingId,
         new UUID(body.seniorId as string),
         body.incidentType as string,

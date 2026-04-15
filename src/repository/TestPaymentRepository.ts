@@ -7,7 +7,7 @@ export class TestPaymentRepository implements IPaymentRepository {
 
   constructor(private db: ITestDatabase) {}
 
-  public findById(id: string): Payment | undefined {
+  public async findById(id: string): Promise<Payment | undefined> {
     try {
       const record = this.db.get("payment", new UUID(id))
       return new Payment({...record, id})
@@ -16,35 +16,35 @@ export class TestPaymentRepository implements IPaymentRepository {
     }
   }
 
-  public findByBookingId(bookingId: string): Payment | undefined {
+  public async findByBookingId(bookingId: string): Promise<Payment | undefined> {
     const all = this.db.getAll("payment")
     const record = all.find(r => r.bookingId === bookingId)
     if (!record) return undefined
     return new Payment({...record})
   }
 
-  public findByTransactionRef(ref: string): Payment | undefined {
+  public async findByTransactionRef(ref: string): Promise<Payment | undefined> {
     const all = this.db.getAll("payment")
     const record = all.find(r => r.transactionRef === ref)
     if (!record) return undefined
     return new Payment({...record})
   }
 
-  public findByCheckoutSessionId(sessionId: string): Payment | undefined {
+  public async findByCheckoutSessionId(sessionId: string): Promise<Payment | undefined> {
     const all = this.db.getAll("payment")
     const record = all.find(r => r.checkoutSessionId === sessionId)
     if (!record) return undefined
     return new Payment({...record})
   }
 
-  public insert(payment: Payment): string {
+  public async insert(payment: Payment): Promise<string> {
     const id = crypto.randomUUID()
     const dto = payment.toDTO()
     this.db.set("payment", new UUID(id), {...dto, id})
     return id
   }
 
-  public save(payment: Payment): boolean {
+  public async save(payment: Payment): Promise<boolean> {
     if (payment.isNew()) {
       throw new Error("cannot save new payment without id")
     }

@@ -19,7 +19,7 @@ handler: async (ctx, [service], session) => {
     }
 
     const body = ctx.body as Record<string, unknown>
-    service.updateUser(new UUID(user.getId() as string), {caretaker: body as Partial<CareTakerUserAttributes>})
+    await service.updateUser(new UUID(user.getId()!.toString()), {caretaker: body as Partial<CareTakerUserAttributes>})
 
     return ok({message: "profile updated"})
   },

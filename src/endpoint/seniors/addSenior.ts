@@ -17,7 +17,7 @@ export const addSenior: Endpoint<[SeniorManagementService]> = {
       return badRequest("fullname, dateOfBirth, mobilityLevel and healthNote are required")
     }
 
-    const senior = service.addSeniorToAdultChild(
+    const senior = await service.addSeniorToAdultChild(
       new UUID(user.getId()),
       body.fullname as string,
       body.dateOfBirth as string,

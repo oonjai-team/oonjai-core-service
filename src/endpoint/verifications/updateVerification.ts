@@ -27,9 +27,9 @@ export const updateVerification: Endpoint<[VerificationService]> = {
     try {
       let verification
       if (body.status === "verified") {
-        verification = service.approveVerification(new UUID(verificationId), new UUID(adminId.toString()))
+        verification = await service.approveVerification(new UUID(verificationId), new UUID(adminId.toString()))
       } else {
-        verification = service.rejectVerification(
+        verification = await service.rejectVerification(
           new UUID(verificationId),
           new UUID(adminId.toString()),
           body.reason as string

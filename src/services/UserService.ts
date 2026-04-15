@@ -20,56 +20,56 @@ export class UserService implements IService {
     return "UserService"
   }
 
-  public createUser(email: string, firstname: string, lastname: string, role: RoleEnum): UUID {
+  public async createUser(email: string, firstname: string, lastname: string, role: RoleEnum): Promise<UUID> {
     const timestamp = TimestampHelper.now()
     const createdUser = new User(email, firstname, lastname, timestamp, role)
-    const [ok, uuid] = this.userRepo.save(createdUser)
+    const [ok, uuid] = await this.userRepo.save(createdUser)
     if (ok && uuid) {
       return uuid
     }
     throw new Error("Failed to save caretaker user")
   }
 
-  public createCaretaker(email: string, firstname: string, lastname: string, attr: CareTakerUserAttributes): UUID {
+  public async createCaretaker(email: string, firstname: string, lastname: string, attr: CareTakerUserAttributes): Promise<UUID> {
     const caretaker = new Caretaker(
       attr.bio, attr.specialization, attr.hourlyRate, attr.currency,
       attr.experience, attr.rating, attr.reviewCount, attr.isVerified,
       attr.isAvailable, attr.contactInfo, attr.permission
     )
 
-    const [ok, uuid] = this.userRepo.save(new User(email, firstname, lastname, TimestampHelper.now(), RoleEnum.CARETAKER, undefined, caretaker))
+    const [ok, uuid] = await this.userRepo.save(new User(email, firstname, lastname, TimestampHelper.now(), RoleEnum.CARETAKER, undefined, caretaker))
     if (ok && uuid) {
       return uuid
     }
     throw new Error("Failed to save caretaker user")
   }
 
-  public getUserById(id: UUID): User | undefined {
+  public async getUserById(id: UUID): Promise<User | undefined> {
     return this.userRepo.findById(id)
   }
 
-  public findUserByEmail(email: string): User | undefined {
+  public async findUserByEmail(email: string): Promise<User | undefined> {
     return this.userRepo.findByEmail(email)
   }
 
-  public getAvailableCaretakers(filters: CaretakerFilter): User[] {
-    const available = this.userRepo.findAvailableCaretaker(filters)
+  public async getAvailableCaretakers(filters: CaretakerFilter): Promise<User[]> {
+    const available = await this.userRepo.findAvailableCaretaker(filters)
     if (!available) {
       return []
     }
     return available
   }
 
-  public updateUser(id: UUID, data: PartialUserDTO) {
+  public async updateUser(id: UUID, data: PartialUserDTO) {
     const copy = {...data}
     if (copy.caretaker) {
-      this.userRepo.updateAttrProfile(id, copy.caretaker)
+      await this.userRepo.updateAttrProfile(id, copy.caretaker)
       delete copy.caretaker
     }
     if (copy.adultChild) {
-      this.userRepo.updateAdultChildProfile(id, copy.adultChild)
+      await this.userRepo.updateAdultChildProfile(id, copy.adultChild)
       delete copy.adultChild
     }
-    this.userRepo.updateUser(id, copy)
+    await this.userRepo.updateUser(id, copy)
   }
 }

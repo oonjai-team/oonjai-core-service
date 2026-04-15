@@ -16,7 +16,7 @@ export const completeCheckout: Endpoint<[PaymentService]> = {
     if (!sessionId) return badRequest("session query parameter is required")
 
     try {
-      const result = service.completeCheckout(sessionId)
+      const result = await service.completeCheckout(sessionId)
       return redirectTo(result.redirectUrl)
     } catch (err: unknown) {
       const message = (err as Error).message

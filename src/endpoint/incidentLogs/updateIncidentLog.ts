@@ -23,7 +23,7 @@ export const updateIncidentLog: Endpoint<[IncidentLogService]> = {
     const logId = ctx.params?.logId as string
 
     try {
-      const log = service.updateIncidentLog(
+      const log = await service.updateIncidentLog(
         new UUID(logId),
         body.status as string,
         body.detail as string

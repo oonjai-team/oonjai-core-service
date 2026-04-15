@@ -18,7 +18,7 @@ export const paymentWebhook: Endpoint<[PaymentService]> = {
     }
 
     try {
-      const payment = service.handleWebhook(
+      const payment = await service.handleWebhook(
         body.transactionRef as string,
         body.paidAt as string,
       )

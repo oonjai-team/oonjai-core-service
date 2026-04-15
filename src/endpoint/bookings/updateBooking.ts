@@ -17,7 +17,7 @@ export const updateBooking: Endpoint<[BookingService]> = {
     const body = ctx.body as Record<string, unknown>
 
     try {
-      const booking = service.updateBooking(bookingId, {
+      const booking = await service.updateBooking(bookingId, {
         startDate: body?.startDate as string | undefined,
         endDate: body?.endDate as string | undefined,
         location: body?.location as string | undefined,

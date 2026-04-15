@@ -6,7 +6,7 @@ export const getActivityById: Endpoint<[ActivityService]> = {
   path: "/activities/:activityId",
   handler: async (ctx, [service]) => {
     const {activityId} = ctx.params
-    const activity = service.getActivityById(activityId)
+    const activity = await service.getActivityById(activityId!)
     if (!activity) {
       return notFound("Activity not found")
     }

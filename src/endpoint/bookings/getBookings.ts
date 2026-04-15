@@ -22,16 +22,16 @@ export const getBookings: Endpoint<[BookingService, UserService]> = {
 
     const userId = new UUID(user.getId())
     const role = user.toDTO().role
-    const bookings = service.getListOfBookings(userId, role, filter)
+    const bookings = await service.getListOfBookings(userId, role, filter)
 
-    return ok(bookings.map(b => {
+    return ok(await Promise.all(bookings.map(async b => {
       const dto = b.toDTO()
 
       // Enrich with caretaker info
       let caretakerName: string | undefined
       let caretakerSpecialization: string | undefined
       if (dto.caretakerId) {
-        const caretakerUser = userService.getUserById(new UUID(dto.caretakerId))
+        const caretakerUser = await userService.getUserById(new UUID(dto.caretakerId))
         if (caretakerUser) {
           const cuDto = caretakerUser.toDTO()
           caretakerName = `${cuDto.firstname} ${cuDto.lastname}`.trim()
@@ -40,6 +40,6 @@ export const getBookings: Endpoint<[BookingService, UserService]> = {
       }
 
       return { ...dto, caretakerName, caretakerSpecialization }
-    }))
+    })))
   },
 }

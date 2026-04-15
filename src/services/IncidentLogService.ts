@@ -20,12 +20,12 @@ export class IncidentLogService implements IService {
     return "IncidentLogService"
   }
 
-  public createIncidentLog(bookingId: string, seniorId: UUID, incidentType: string, detail: string): IncidentLog {
+  public async createIncidentLog(bookingId: string, seniorId: UUID, incidentType: string, detail: string): Promise<IncidentLog> {
     if (!VALID_INCIDENT_TYPES.includes(incidentType as any)) {
       throw new Error(`INVALID_TYPE: incidentType must be one of: ${VALID_INCIDENT_TYPES.join(", ")}`)
     }
 
-    const booking = this.bookingRepo.findById(bookingId)
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) {
       throw new Error("NOT_FOUND: booking not found")
     }
@@ -42,31 +42,31 @@ export class IncidentLogService implements IService {
       "noted",
       TimestampHelper.now()
     )
-    const id = this.incidentLogRepo.insert(log)
+    const id = await this.incidentLogRepo.insert(log)
     return new IncidentLog(bookingId, seniorId, incidentType as any, detail, "noted", log.toDTO().createdAt, id)
   }
 
-  public getIncidentLogsFromBooking(bookingId: string): IncidentLog[] {
+  public async getIncidentLogsFromBooking(bookingId: string): Promise<IncidentLog[]> {
     return this.incidentLogRepo.findByBookingId(bookingId)
   }
 
-  public getIncidentLogsFromSenior(seniorId: UUID): IncidentLog[] {
+  public async getIncidentLogsFromSenior(seniorId: UUID): Promise<IncidentLog[]> {
     return this.incidentLogRepo.findBySeniorId(seniorId)
   }
 
-  public updateIncidentLog(logId: UUID, status: string, detail: string): IncidentLog {
+  public async updateIncidentLog(logId: UUID, status: string, detail: string): Promise<IncidentLog> {
     if (!VALID_INCIDENT_STATUSES.includes(status as any)) {
       throw new Error(`INVALID_STATUS: status must be one of: ${VALID_INCIDENT_STATUSES.join(", ")}`)
     }
 
-    const log = this.incidentLogRepo.findById(logId)
+    const log = await this.incidentLogRepo.findById(logId)
     if (!log) {
       throw new Error("NOT_FOUND: incident log not found")
     }
 
     log.updateStatus(status as IncidentStatus)
     log.updateDetail(detail)
-    this.incidentLogRepo.save(log)
+    await this.incidentLogRepo.save(log)
     return log
   }
 }

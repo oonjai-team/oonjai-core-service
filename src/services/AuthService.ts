@@ -17,21 +17,10 @@ export class AuthService implements IService {
     return "AuthService"
   }
 
-  /**
-   * OAuth login flow:
-   * The OAuth provider authenticates the user and gives the client an access token.
-   * The client sends that token here alongside the verified email.
-   *
-   * TODO: validate `oauthToken` against your OAuth provider
-   *       (e.g. GET https://openidconnect.googleapis.com/v1/userinfo)
-   *       and extract the verified email before trusting it.
-   */
   public async login(email: string, oauthToken?: string): Promise<SessionToken> {
-    // TODO: when OAuth provider is connected, make oauthToken required and verify it here
-    //       e.g. GET https://openidconnect.googleapis.com/v1/userinfo
     void oauthToken
 
-    const user = this.userService.findUserByEmail(email)
+    const user = await this.userService.findUserByEmail(email)
     if (!user) throw new Error("user not found")
 
     const id = user.getId()!
@@ -43,9 +32,6 @@ export class AuthService implements IService {
     return {accessToken, refreshToken, expiresIn: 3600}
   }
 
-  /**
-   * Create a new user — called when an OAuth user signs in for the first time.
-   */
   public async register(
     email: string,
     oauthToken: string | undefined,
@@ -54,17 +40,16 @@ export class AuthService implements IService {
     role: RoleEnum,
     caretakerAttr?: CareTakerUserAttributes
   ): Promise<User> {
-    // TODO: when OAuth provider is connected, make oauthToken required and verify it here
     void oauthToken
 
     if (role === RoleEnum.CARETAKER) {
       if (!caretakerAttr) throw new Error("caretakerAttr required for caretaker registration")
-      const id = this.userService.createCaretaker(email, firstname, lastname, caretakerAttr)
-      return this.userService.getUserById(id)!
+      const id = await this.userService.createCaretaker(email, firstname, lastname, caretakerAttr)
+      return (await this.userService.getUserById(id))!
     }
 
-    const id = this.userService.createUser(email, firstname, lastname, role)
-    return this.userService.getUserById(id)!
+    const id = await this.userService.createUser(email, firstname, lastname, role)
+    return (await this.userService.getUserById(id))!
   }
 
   public logout(token: string): void {

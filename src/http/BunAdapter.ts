@@ -116,13 +116,13 @@ export function serveBun(router: Router, options: BunAdapterOptions = {}): void 
         if (httpStatus >= 400 && httpStatus < 500) {
           apiStatus = 1 // FAILED
           if (payload && typeof payload === "object" && "message" in (payload as Record<string, unknown>)) {
-            message = (payload as Record<string, string>).message
+            message = (payload as Record<string, string>).message ?? ""
             payload = null
           }
         } else if (httpStatus >= 500) {
           apiStatus = 2 // ERROR
           if (payload && typeof payload === "object" && "message" in (payload as Record<string, unknown>)) {
-            message = (payload as Record<string, string>).message
+            message = (payload as Record<string, string>).message ?? ""
             payload = null
           }
         }

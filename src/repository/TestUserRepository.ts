@@ -14,7 +14,7 @@ export class TestUserRepository implements IUserRepository {
 
   constructor(private db: ITestDatabase) {}
 
-  save(user: User): [boolean, UUID?] {
+  async save(user: User): Promise<[boolean, UUID?]> {
     if (user.isNew()) {
       const id = this.db.insert("user", user.toDTO())
       if (user.isCaretaker()) {
@@ -41,7 +41,7 @@ export class TestUserRepository implements IUserRepository {
     return [true, undefined]
   }
 
-  delete(user: User): void {
+  async delete(user: User): Promise<void> {
      if (user.isNew()) {
       throw new Error("cannot delete")
      }
@@ -49,7 +49,7 @@ export class TestUserRepository implements IUserRepository {
      this.db.delete("user", user.getId() as UUID)
   }
 
-  findById(id: UUID): User | undefined {
+  async findById(id: UUID): Promise<User | undefined> {
     try {
       const record = this.db.get("user", id)
       return this.reconstruct(record, id)
@@ -58,14 +58,14 @@ export class TestUserRepository implements IUserRepository {
     }
   }
 
-  findByEmail(email: string): User | undefined {
+  async findByEmail(email: string): Promise<User | undefined> {
     const all = this.db.getAll("user")
     const record = all.find((u) => u.email === email)
     if (!record) return undefined
     return this.reconstruct(record, new UUID(record.id))
   }
 
-  findAvailableCaretaker(filters: CaretakerFilter): User[] {
+  async findAvailableCaretaker(filters: CaretakerFilter): Promise<User[]> {
     let results: (CareTakerUserAttributes & {id: string})[] = this.db.getAll("caretaker")
       .filter(c => c.isAvailable)
 
@@ -138,7 +138,7 @@ export class TestUserRepository implements IUserRepository {
     return mapped
   }
 
-  updateUser(id: UUID, data: Partial<Omit<UserDTO, "caretaker" | "adultChild">>): boolean {
+  async updateUser(id: UUID, data: Partial<Omit<UserDTO, "caretaker" | "adultChild">>): Promise<boolean> {
     try {
       this.db.update("user", id, data)
       return true
@@ -147,7 +147,7 @@ export class TestUserRepository implements IUserRepository {
     }
   }
 
-  updateAttrProfile(id: UUID, data: Partial<CareTakerUserAttributes>): boolean {
+  async updateAttrProfile(id: UUID, data: Partial<CareTakerUserAttributes>): Promise<boolean> {
     try {
       this.db.update("caretaker", id, data)
       return true
@@ -156,7 +156,7 @@ export class TestUserRepository implements IUserRepository {
     }
   }
 
-  updateAdultChildProfile(id: UUID, data: Partial<AdultChildAttributes>): boolean {
+  async updateAdultChildProfile(id: UUID, data: Partial<AdultChildAttributes>): Promise<boolean> {
     try {
       // Use set() to upsert — the record may not exist yet (first onboarding)
       const existing = (() => { try { return this.db.get("adultChild", id) } catch { return {} } })()

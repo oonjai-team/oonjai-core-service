@@ -11,11 +11,11 @@ export const getSeniorConflicts: Endpoint<[BookingService, ActivityService, Seni
     if (!session?.getUser()) return unauthorized()
 
     const {activityId} = ctx.params
-    const activity = activityService.getActivityById(activityId)
+    const activity = await activityService.getActivityById(activityId!)
     if (!activity) return notFound("Activity not found")
 
     // Get seniors already booked for this specific activity
-    const alreadyBooked = bookingService.getBookedSeniorIds(activityId)
+    const alreadyBooked = await bookingService.getBookedSeniorIds(activityId!)
 
     // For the frontend to check time conflicts, also return which seniors have
     // overlapping bookings (different activity, same time window)
@@ -24,13 +24,13 @@ export const getSeniorConflicts: Endpoint<[BookingService, ActivityService, Seni
 
     // Get ALL seniors belonging to this user (not just ones with bookings)
     const userId = session!.getUser()!.getId()
-    const userSeniors = seniorService.getAllSeniorsFromUser(new UUID(userId))
+    const userSeniors = await seniorService.getAllSeniorsFromUser(new UUID(userId))
     const userSeniorIds = userSeniors.map(s => s.toDTO().id).filter(Boolean) as string[]
 
     const timeConflicts: string[] = []
     for (const sid of userSeniorIds) {
       if (alreadyBooked.includes(sid)) continue // already caught by duplicate
-      if (bookingService.hasSeniorTimeConflict(new UUID(sid), startDate, endDate, activityId)) {
+      if (await bookingService.hasSeniorTimeConflict(new UUID(sid), startDate, endDate, activityId)) {
         timeConflicts.push(sid)
       }
     }

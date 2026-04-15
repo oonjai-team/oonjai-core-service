@@ -12,7 +12,7 @@ export const getIncidentLogs: Endpoint<[IncidentLogService, BookingService]> = {
     }
 
     const bookingId = ctx.params?.bookingId as string
-    const booking = bookingService.getBookingDetail(bookingId)
+    const booking = await bookingService.getBookingDetail(bookingId)
     if (!booking) {
       return notFound("Booking not found")
     }
@@ -26,7 +26,7 @@ export const getIncidentLogs: Endpoint<[IncidentLogService, BookingService]> = {
       return { status: 403, body: { message: "FORBIDDEN: only the booking owner or assigned caretaker can view incidents" } }
     }
 
-    const logs = incidentLogService.getIncidentLogsFromBooking(bookingId)
+    const logs = await incidentLogService.getIncidentLogsFromBooking(bookingId)
     return ok(logs.map(log => log.toDTO()))
   },
 }

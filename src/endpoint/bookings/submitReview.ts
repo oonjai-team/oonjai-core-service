@@ -26,7 +26,7 @@ export const submitReview: Endpoint<[BookingService]> = {
     }
 
     try {
-      const review = service.submitReview(
+      const review = await service.submitReview(
         bookingId,
         rating,
         body.comment as string,

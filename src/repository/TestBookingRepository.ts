@@ -9,7 +9,7 @@ export class TestBookingRepository implements IBookingRepository {
 
   constructor(private db: ITestDatabase) {}
 
-  public findById(id: string): Booking | undefined {
+  public async findById(id: string): Promise<Booking | undefined> {
     try {
       const record = this.db.get("booking", new UUID(id))
       return this.reconstruct(record, new UUID(id))
@@ -18,27 +18,27 @@ export class TestBookingRepository implements IBookingRepository {
     }
   }
 
-  public findByOwnerId(adultChildId: UUID, filter?: BookingFilter): Booking[] {
+  public async findByOwnerId(adultChildId: UUID, filter?: BookingFilter): Promise<Booking[]> {
     return this.applyFilter(
       this.db.getAll("booking").filter(dto => dto.adultChildId === adultChildId.toString()),
       filter
     )
   }
 
-  public findByCaretakerId(caretakerId: UUID, filter?: BookingFilter): Booking[] {
+  public async findByCaretakerId(caretakerId: UUID, filter?: BookingFilter): Promise<Booking[]> {
     return this.applyFilter(
       this.db.getAll("booking").filter(dto => dto.caretakerId === caretakerId.toString()),
       filter
     )
   }
 
-  public findByActivityId(activityId: string): Booking[] {
+  public async findByActivityId(activityId: string): Promise<Booking[]> {
     return this.db.getAll("booking")
       .filter(dto => dto.activityId === activityId)
       .map(r => this.reconstruct(r, new UUID(r.id)))
   }
 
-  public findBySeniorId(seniorId: UUID): Booking[] {
+  public async findBySeniorId(seniorId: UUID): Promise<Booking[]> {
     return this.db.getAll("booking")
       .filter(dto => dto.seniorId === seniorId.toString())
       .map(r => this.reconstruct(r, new UUID(r.id)))
@@ -61,7 +61,7 @@ export class TestBookingRepository implements IBookingRepository {
     return results.map(r => this.reconstruct(r, new UUID(r.id)))
   }
 
-  public insert(booking: Booking): string {
+  public async insert(booking: Booking): Promise<string> {
     const shortId = crypto.randomUUID().replace(/-/g, "").substring(0, 8).toUpperCase()
     const bookingId = `BK-${shortId}`
     const {review, ...bookingData} = booking.toDTO()
@@ -69,7 +69,7 @@ export class TestBookingRepository implements IBookingRepository {
     return bookingId
   }
 
-  public save(booking: Booking): boolean {
+  public async save(booking: Booking): Promise<boolean> {
     if (booking.isNew()) {
       throw new Error("cannot save new booking without id")
     }
@@ -82,7 +82,7 @@ export class TestBookingRepository implements IBookingRepository {
     return true
   }
 
-  public delete(booking: Booking): void {
+  public async delete(booking: Booking): Promise<void> {
     if (booking.isNew()) {
       throw new Error("cannot delete booking without id")
     }

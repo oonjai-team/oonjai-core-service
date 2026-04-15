@@ -28,11 +28,11 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
     }
 
     // Validate activity exists
-    const activity = activityService.getActivityById(activityId)
+    const activity = await activityService.getActivityById(activityId)
     if (!activity) return notFound("Activity not found")
 
     // ── Duplicate check: prevent seniors already booked for this activity ──
-    const alreadyBooked = bookingService.getBookedSeniorIds(activityId)
+    const alreadyBooked = await bookingService.getBookedSeniorIds(activityId)
     const duplicates = seniorIds.filter(id => alreadyBooked.includes(id))
     if (duplicates.length > 0) {
       return badRequest(`DUPLICATE: senior(s) already booked for this activity: ${duplicates.join(", ")}`)
@@ -43,7 +43,7 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
     const endDate = activity.getEndDate()
     const conflicting: string[] = []
     for (const sid of seniorIds) {
-      if (bookingService.hasSeniorTimeConflict(new UUID(sid), startDate, endDate, activityId)) {
+      if (await bookingService.hasSeniorTimeConflict(new UUID(sid), startDate, endDate, activityId)) {
         conflicting.push(sid)
       }
     }
@@ -69,7 +69,7 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
 
     try {
       // Create a single booking for the activity (use first senior as primary)
-      const booking = bookingService.createActivityBooking(
+      const booking = await bookingService.createActivityBooking(
         new UUID(user.getId()),
         new UUID(seniorIds[0]),
         activityId,
@@ -82,7 +82,7 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
       )
 
       // Persist the updated participant count
-      activityService.saveActivity(activity)
+      await activityService.saveActivity(activity)
 
       const bookingDTO = booking.toDTO()
 

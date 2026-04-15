@@ -19,13 +19,13 @@ export const getSeniorServiceConflicts: Endpoint<[BookingService, SeniorManageme
 
     // Get all seniors for this user
     const userId = new UUID(user.getId())
-    const seniors = seniorService.getAllSeniorsFromUser(userId)
+    const seniors = await seniorService.getAllSeniorsFromUser(userId)
 
     // Check each senior for time conflicts
     const conflicts: string[] = []
     for (const senior of seniors) {
       const seniorId = new UUID(senior.toDTO().id!)
-      if (bookingService.hasSeniorTimeConflict(seniorId, startDate, endDate)) {
+      if (await bookingService.hasSeniorTimeConflict(seniorId, startDate, endDate)) {
         conflicts.push(senior.toDTO().id!)
       }
     }

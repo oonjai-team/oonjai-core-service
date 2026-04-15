@@ -38,7 +38,6 @@ CareSessionStatus.COMPLETED,
 export class StatusLogService implements IService {
 private statusLogRepo: IStatusLogRepository
 
-// TODO: inject IBookingRepository once BE-BOOKING-TASK is merged
 constructor(statusLogRepo: IStatusLogRepository) {
     this.statusLogRepo = statusLogRepo
   }
@@ -47,19 +46,13 @@ constructor(statusLogRepo: IStatusLogRepository) {
     return "StatusLogService"
   }
 
-  public createStatusLog(bookingId: string, caretakerId: UUID, statusType: CareSessionStatus, notes: string, photoUrl?: string): StatusLog {
-    // TODO: re-enable booking validation once BE-BOOKING-TASK is merged
-    // - check booking exists
-    // - check booking status is "confirmed"
-    // - check caretaker is assigned to booking
-    // - check statusType is valid for booking's serviceType
-
+  public async createStatusLog(bookingId: string, caretakerId: UUID, statusType: CareSessionStatus, notes: string, photoUrl?: string): Promise<StatusLog> {
     const log = new StatusLog(bookingId, statusType, notes, photoUrl ?? null, TimestampHelper.now())
-    const id = this.statusLogRepo.insert(log)
+    const id = await this.statusLogRepo.insert(log)
     return new StatusLog(bookingId, statusType, notes, photoUrl ?? null, log.toDTO().createdAt, id)
   }
 
-  public getStatusLogsForBooking(bookingId: string): StatusLog[] {
+  public async getStatusLogsForBooking(bookingId: string): Promise<StatusLog[]> {
     return this.statusLogRepo.findByBookingId(bookingId)
   }
 }

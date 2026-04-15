@@ -26,7 +26,7 @@ export const createBooking: Endpoint<[BookingService]> = {
     }
 
     try {
-      const booking = service.createBooking(
+      const booking = await service.createBooking(
         new UUID(user.getId()),
         new UUID(body.seniorId as string),
         new UUID(body.caretakerId as string),

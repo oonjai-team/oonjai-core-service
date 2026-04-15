@@ -7,7 +7,7 @@ import { UploaderType } from "@type/verification"
 export class TestVerificationRepository implements IVerificationRepository {
   constructor(private db: ITestDatabase) {}
 
-  findById(id: UUID): Verification | undefined {
+  async findById(id: UUID): Promise<Verification | undefined> {
     try {
       const record = this.db.get("verification", id)
       return this.reconstruct(record)
@@ -16,18 +16,18 @@ export class TestVerificationRepository implements IVerificationRepository {
     }
   }
 
-  findPending(): Verification[] {
+  async findPending(): Promise<Verification[]> {
     return this.db
       .getAll("verification")
       .filter((r) => r.status === "pending")
       .map((r) => this.reconstruct(r))
   }
 
-  insert(verification: Verification): UUID {
+  async insert(verification: Verification): Promise<UUID> {
     return this.db.insert("verification", verification.toDTO())
   }
 
-  save(verification: Verification): boolean {
+  async save(verification: Verification): Promise<boolean> {
     const id = verification.getId()
     if (!id) throw new Error("Cannot save a verification without an id")
     return this.db.update("verification", id, verification.toDTO())

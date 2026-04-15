@@ -13,7 +13,7 @@ export const getAllSeniors: Endpoint<[SeniorManagementService]> = {
       return unauthorized()
     }
 
-    const seniors = service.getAllSeniorsFromUser(new UUID(user.getId()))
+    const seniors = await service.getAllSeniorsFromUser(new UUID(user.getId()))
     return ok(seniors.map(s => s.toDTO()))
   },
 }

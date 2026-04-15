@@ -7,11 +7,11 @@ export class TestActivityRepository implements IActivityRepository {
 
   constructor(private db: ITestDatabase) {}
 
-  public findAll(): Activity[] {
+  public async findAll(): Promise<Activity[]> {
     return this.db.getAll("activity").map(r => new Activity(r))
   }
 
-  public findById(id: string): Activity | undefined {
+  public async findById(id: string): Promise<Activity | undefined> {
     try {
       const record = this.db.get("activity", new UUID(id))
       return new Activity(record)
@@ -22,16 +22,16 @@ export class TestActivityRepository implements IActivityRepository {
 
   /** Strip computed fields before persisting */
   private toPersistable(activity: Activity) {
-    const {displayDate, ...data} = activity.toDTO() as Record<string, unknown>
+    const {displayDate, ...data} = activity.toDTO() as unknown as Record<string, unknown>
     return data
   }
 
-  public insert(activity: Activity): string {
+  public async insert(activity: Activity): Promise<string> {
     const id = this.db.insert("activity", this.toPersistable(activity))
     return id.toString()
   }
 
-  public save(activity: Activity): boolean {
+  public async save(activity: Activity): Promise<boolean> {
     if (activity.isNew()) {
       throw new Error("cannot save new activity without id")
     }
@@ -40,7 +40,7 @@ export class TestActivityRepository implements IActivityRepository {
     return true
   }
 
-  public delete(activity: Activity): void {
+  public async delete(activity: Activity): Promise<void> {
     if (activity.isNew()) {
       throw new Error("cannot delete activity without id")
     }

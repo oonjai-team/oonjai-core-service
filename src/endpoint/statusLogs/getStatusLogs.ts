@@ -14,7 +14,7 @@ handler: async (ctx, [service], session) => {
     // Check if booking is related to the user or not
 
     const bookingId = ctx.params?.bookingId as string
-    const logs = service.getStatusLogsForBooking(bookingId)
+    const logs = await service.getStatusLogsForBooking(bookingId)
     return ok(logs.map(log => log.toDTO()))
   },
 }

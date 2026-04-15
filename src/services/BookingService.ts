@@ -23,7 +23,7 @@ export class BookingService implements IService {
     return "BookingService"
   }
 
-  public createBooking(
+  public async createBooking(
     adultChildId: UUID,
     seniorId: UUID,
     caretakerId: UUID,
@@ -32,8 +32,8 @@ export class BookingService implements IService {
     endDate: string,
     location: string,
     note: string
-  ): Booking {
-    const caretakerUser = this.userRepo.findById(caretakerId)
+  ): Promise<Booking> {
+    const caretakerUser = await this.userRepo.findById(caretakerId)
     if (!caretakerUser || !caretakerUser.isCaretaker()) {
       throw new Error("CARETAKER_NOT_FOUND: caretaker not found")
     }
@@ -44,7 +44,7 @@ export class BookingService implements IService {
     }
 
     // Check for time conflicts
-    const existing = this.bookingRepo.findByCaretakerId(caretakerId)
+    const existing = await this.bookingRepo.findByCaretakerId(caretakerId)
     const newStart = new Date(startDate).getTime()
     const newEnd = new Date(endDate).getTime()
     const hasConflict = existing.some(b => {
@@ -59,7 +59,7 @@ export class BookingService implements IService {
     }
 
     // Check senior time conflicts
-    if (this.hasSeniorTimeConflict(seniorId, startDate, endDate)) {
+    if (await this.hasSeniorTimeConflict(seniorId, startDate, endDate)) {
       throw new Error("SENIOR_CONFLICT: senior already has a booking during this time period")
     }
 
@@ -83,18 +83,18 @@ export class BookingService implements IService {
       TimestampHelper.now()
     )
 
-    const id = this.bookingRepo.insert(booking)
+    const id = await this.bookingRepo.insert(booking)
 
     // Mark slots as booked on the caretaker
     caretakerProfile.bookSlots(startDate, endDate, id)
-    this.userRepo.updateAttrProfile(caretakerId, caretakerProfile.toDTO())
+    await this.userRepo.updateAttrProfile(caretakerId, caretakerProfile.toDTO())
 
     return new Booking({...booking.toDTO(), id: id})
   }
 
   /** Return unique senior IDs that already have a non-cancelled booking for this activity */
-  public getBookedSeniorIds(activityId: string): string[] {
-    const bookings = this.bookingRepo.findByActivityId(activityId)
+  public async getBookedSeniorIds(activityId: string): Promise<string[]> {
+    const bookings = await this.bookingRepo.findByActivityId(activityId)
     const ids = bookings
       .filter(b => b.getStatus() !== BookingStatus.CANCELLED)
       .map(b => b.toDTO().seniorId)
@@ -102,8 +102,8 @@ export class BookingService implements IService {
   }
 
   /** Check if a senior has any non-cancelled booking that overlaps the given time window */
-  public hasSeniorTimeConflict(seniorId: UUID, startDate: string, endDate: string, excludeActivityId?: string): boolean {
-    const bookings = this.bookingRepo.findBySeniorId(seniorId)
+  public async hasSeniorTimeConflict(seniorId: UUID, startDate: string, endDate: string, excludeActivityId?: string): Promise<boolean> {
+    const bookings = await this.bookingRepo.findBySeniorId(seniorId)
     const newStart = new Date(startDate).getTime()
     const newEnd = new Date(endDate).getTime()
 
@@ -123,7 +123,7 @@ export class BookingService implements IService {
     })
   }
 
-  public createActivityBooking(
+  public async createActivityBooking(
     adultChildId: UUID,
     seniorId: UUID,
     activityId: string,
@@ -133,7 +133,7 @@ export class BookingService implements IService {
     estimatedCost: number,
     currency: string,
     note: string,
-  ): Booking {
+  ): Promise<Booking> {
     const booking = new Booking(
       adultChildId,
       seniorId,
@@ -150,85 +150,85 @@ export class BookingService implements IService {
       TimestampHelper.now()
     )
 
-    const id = this.bookingRepo.insert(booking)
+    const id = await this.bookingRepo.insert(booking)
     const saved = new Booking({...booking.toDTO(), id, activityId})
-    this.bookingRepo.save(saved)
+    await this.bookingRepo.save(saved)
     return saved
   }
 
-  public getListOfBookings(userId: UUID, role: RoleEnum, filter?: BookingFilter): Booking[] {
+  public async getListOfBookings(userId: UUID, role: RoleEnum, filter?: BookingFilter): Promise<Booking[]> {
     if (role === RoleEnum.CARETAKER) {
       return this.bookingRepo.findByCaretakerId(userId, filter)
     }
     return this.bookingRepo.findByOwnerId(userId, filter)
   }
 
-  public getBookingDetail(bookingId: string): Booking | undefined {
+  public async getBookingDetail(bookingId: string): Promise<Booking | undefined> {
     return this.bookingRepo.findById(bookingId)
   }
 
-  public updateBooking(bookingId: string, data: Partial<BookingDTO>): Booking {
-    const booking = this.bookingRepo.findById(bookingId)
+  public async updateBooking(bookingId: string, data: Partial<BookingDTO>): Promise<Booking> {
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) throw new Error("NOT_FOUND: booking not found")
     booking.update(data)
-    this.bookingRepo.save(booking)
+    await this.bookingRepo.save(booking)
     return booking
   }
 
-  public cancelBooking(bookingId: string, requesterId: UUID): void {
-    const booking = this.bookingRepo.findById(bookingId)
+  public async cancelBooking(bookingId: string, requesterId: UUID): Promise<void> {
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) throw new Error("NOT_FOUND: booking not found")
     booking.cancel(requesterId)
-    this.bookingRepo.save(booking)
+    await this.bookingRepo.save(booking)
 
     // Release booked slots on the caretaker
     const dto = booking.toDTO()
     if (dto.caretakerId) {
-      const caretakerUser = this.userRepo.findById(new UUID(dto.caretakerId))
+      const caretakerUser = await this.userRepo.findById(new UUID(dto.caretakerId))
       if (caretakerUser) {
         const profile = caretakerUser.getCaretaker()
         if (profile) {
           profile.releaseSlots(bookingId)
-          this.userRepo.updateAttrProfile(new UUID(dto.caretakerId), profile.toDTO())
+          await this.userRepo.updateAttrProfile(new UUID(dto.caretakerId), profile.toDTO())
         }
       }
     }
   }
 
-  public confirmBooking(bookingId: string, caretakerId: UUID): Booking {
-    const booking = this.bookingRepo.findById(bookingId)
+  public async confirmBooking(bookingId: string, caretakerId: UUID): Promise<Booking> {
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) throw new Error("NOT_FOUND: booking not found")
     booking.confirm(caretakerId)
-    this.bookingRepo.save(booking)
+    await this.bookingRepo.save(booking)
     return booking
   }
 
-  public endSession(bookingId: string, caretakerId: UUID): Booking {
-    const booking = this.bookingRepo.findById(bookingId)
+  public async endSession(bookingId: string, caretakerId: UUID): Promise<Booking> {
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) throw new Error("NOT_FOUND: booking not found")
     booking.end(caretakerId)
-    this.bookingRepo.save(booking)
+    await this.bookingRepo.save(booking)
     return booking
   }
 
-  public submitReview(bookingId: string, rating: number, comment: string, reviewType: string): Review {
-    const booking = this.bookingRepo.findById(bookingId)
+  public async submitReview(bookingId: string, rating: number, comment: string, reviewType: string): Promise<Review> {
+    const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) throw new Error("NOT_FOUND: booking not found")
     const review = booking.addReview(rating, comment, reviewType)
 
-    // bookingRepo.save handles persisting the review to its own collection
-    this.bookingRepo.save(booking)
+    // bookingRepo.save handles persisting the review to its own table
+    await this.bookingRepo.save(booking)
 
     // Recalculate caretaker's average rating
     const caretakerId = new UUID(booking.getCaretakerId().toString())
-    const caretakerUser = this.userRepo.findById(caretakerId)
+    const caretakerUser = await this.userRepo.findById(caretakerId)
     if (caretakerUser) {
       const profile = caretakerUser.getCaretaker()
       if (profile) {
         const dto = profile.toDTO()
         const newReviewCount = dto.reviewCount + 1
         const newRating = (dto.rating * dto.reviewCount + rating) / newReviewCount
-        this.userRepo.updateAttrProfile(caretakerId, {
+        await this.userRepo.updateAttrProfile(caretakerId, {
           rating: Math.round(newRating * 100) / 100,
           reviewCount: newReviewCount,
         })
