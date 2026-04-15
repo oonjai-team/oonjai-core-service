@@ -80,7 +80,7 @@ export class PgActivityRepository implements IActivityRepository {
       id: row.ActivityID,
       title: row.Title,
       category: row.Category,
-      tags: row.Tags,
+      tags: parseJsonArray(row.Tags),
       host: row.Host,
       hostAvatar: row.HostAvatar,
       hostDescription: row.HostDescription,
@@ -94,8 +94,22 @@ export class PgActivityRepository implements IActivityRepository {
       maxPeople: Number(row.MaxPeople),
       rating: Number(row.Rating),
       reviews: Number(row.Reviews),
-      images: row.Images,
+      images: parseJsonArray(row.Images),
       createdAt: new Timestamp(new Date(row.CreatedDate).getTime()),
     })
+  }
+}
+
+// postgres.js returns JSON(B) columns as parsed values, but if these columns are
+// plain TEXT the raw string is passed through — index-access then yields single
+// characters like "[". Parse defensively so both shapes work.
+function parseJsonArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value as string[]
+  if (typeof value !== "string" || value.length === 0) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
   }
 }

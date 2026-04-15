@@ -6,7 +6,7 @@ export interface BookingDTO {
   id: string | undefined
   adultChildId: string
   seniorId: string
-  caretakerId: string
+  caretakerId: string | null
   serviceType: ServiceType
   status: BookingStatus
   startDate: string

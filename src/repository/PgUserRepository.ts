@@ -163,7 +163,7 @@ export class PgUserRepository implements IUserRepository {
       FROM "USER" u
       LEFT JOIN "CARETAKER" c ON c."UserID" = u."UserID"
       LEFT JOIN "ADULT_CHILD" ac ON ac."UserID" = u."UserID"
-      WHERE u."Email" = ${email}
+      WHERE LOWER(u."Email") = LOWER(${email})
     `
 
     if (rows.length === 0) return undefined

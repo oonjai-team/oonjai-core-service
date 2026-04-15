@@ -18,7 +18,8 @@ export const getBookingById: Endpoint<[BookingService]> = {
 
     const userId = user.getId()
     const isOwner = booking.getAdultChildId().is(userId)
-    const isAssignedCaretaker = booking.getCaretakerId().is(userId)
+    const caretakerId = booking.getCaretakerId()
+    const isAssignedCaretaker = caretakerId ? caretakerId.is(userId) : false
     if (!isOwner && !isAssignedCaretaker) {
       return {status: 403, body: {message: "Access denied"}}
     }

@@ -55,7 +55,9 @@ export const oauthCallback: Endpoint<[OAuthRegistry, AuthService]> = {
         redirectTo(destination)
       )
     } catch(e) {
-      return internalError("auth error")
+      console.error("[oauthCallback] authentication failed:", e)
+      const msg = e instanceof Error ? e.message : "auth error"
+      return internalError(`auth error: ${msg}`)
     }
   },
 }

@@ -8,7 +8,7 @@ export class Booking {
   private id?: UUID
   private adultChildId: UUID
   private seniorId: UUID
-  private caretakerId: UUID
+  private caretakerId: UUID | null
   private serviceType: ServiceType
   private status: BookingStatus
   private startDate: string
@@ -25,7 +25,7 @@ export class Booking {
   constructor(
     adultChildId: UUID,
     seniorId: UUID,
-    caretakerId: UUID,
+    caretakerId: UUID | null,
     serviceType: ServiceType,
     status: BookingStatus,
     startDate: string,
@@ -42,14 +42,14 @@ export class Booking {
   constructor(
     ...args:
       | [BookingDTO]
-      | [UUID, UUID, UUID, ServiceType, BookingStatus, string, string, string, string, number, string, Review | null, Timestamp, UUID?]
+      | [UUID, UUID, UUID | null, ServiceType, BookingStatus, string, string, string, string, number, string, Review | null, Timestamp, UUID?]
   ) {
     if (typeof args[0] === "object" && "adultChildId" in args[0]) {
       const dto = args[0] as BookingDTO
       this.id = new UUID(dto.id)
       this.adultChildId = new UUID(dto.adultChildId)
       this.seniorId = new UUID(dto.seniorId)
-      this.caretakerId = new UUID(dto.caretakerId)
+      this.caretakerId = dto.caretakerId ? new UUID(dto.caretakerId) : null
       this.serviceType = dto.serviceType
       this.status = dto.status
       this.startDate = dto.startDate
@@ -64,7 +64,7 @@ export class Booking {
       return
     }
 
-    const arr = args as [UUID, UUID, UUID, ServiceType, BookingStatus, string, string, string, string, number, string, Review | null, Timestamp, UUID?]
+    const arr = args as [UUID, UUID, UUID | null, ServiceType, BookingStatus, string, string, string, string, number, string, Review | null, Timestamp, UUID?]
     this.adultChildId = arr[0]
     this.seniorId = arr[1]
     this.caretakerId = arr[2]
@@ -98,7 +98,7 @@ export class Booking {
     return this.adultChildId
   }
 
-  public getCaretakerId(): UUID {
+  public getCaretakerId(): UUID | null {
     return this.caretakerId
   }
 
@@ -106,14 +106,14 @@ export class Booking {
     if (this.adultChildId.toString() !== requesterId.toString()) {
       throw new Error("FORBIDDEN: only the booking owner can cancel")
     }
-    if (this.status !== BookingStatus.CREATED) {
-      throw new Error("FORBIDDEN: only created bookings can be cancelled")
+    if (this.status !== BookingStatus.CREATED && this.status !== BookingStatus.CONFIRMED) {
+      throw new Error("FORBIDDEN: only pending or confirmed bookings can be cancelled")
     }
     this.status = BookingStatus.CANCELLED
   }
 
   public confirm(caretakerId: UUID): void {
-    if (this.caretakerId.toString() !== caretakerId.toString()) {
+    if (!this.caretakerId || this.caretakerId.toString() !== caretakerId.toString()) {
       throw new Error("FORBIDDEN: only the assigned caretaker can confirm this booking")
     }
     if (this.status === BookingStatus.CONFIRMED) {
@@ -131,7 +131,7 @@ export class Booking {
   }
 
   public end(caretakerId: UUID): void {
-    if (this.caretakerId.toString() !== caretakerId.toString()) {
+    if (!this.caretakerId || this.caretakerId.toString() !== caretakerId.toString()) {
       throw new Error("FORBIDDEN: only the assigned caretaker can end this session")
     }
     if (this.status !== BookingStatus.CONFIRMED) {
@@ -169,7 +169,7 @@ export class Booking {
       id: this.id?.toString(),
       adultChildId: this.adultChildId.toString(),
       seniorId: this.seniorId.toString(),
-      caretakerId: this.caretakerId.toString(),
+      caretakerId: this.caretakerId ? this.caretakerId.toString() : null,
       serviceType: this.serviceType,
       status: this.status,
       startDate: this.startDate,

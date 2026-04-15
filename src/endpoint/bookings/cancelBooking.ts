@@ -17,7 +17,7 @@ export const cancelBooking: Endpoint<[BookingService]> = {
     const bookingId = ctx.params.bookingId as string
 
     try {
-      service.cancelBooking(bookingId, new UUID(user.getId()))
+      await service.cancelBooking(bookingId, new UUID(user.getId()))
       return noContent()
     } catch (err: unknown) {
       const message = (err as Error).message

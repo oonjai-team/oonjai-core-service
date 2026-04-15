@@ -15,11 +15,35 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
     const body = ctx.body as Record<string, unknown>
     if (!body) return badRequest("request body is required")
 
-    const {activityId, seniorIds, transport, note} = body as {
+    const {
+      activityId,
+      seniorIds,
+      pickupMode,
+      pickupLocation,
+      dropoffMode,
+      dropoffLocation,
+      note,
+    } = body as {
       activityId?: string
       seniorIds?: string[]
-      transport?: string
+      pickupMode?: string
+      pickupLocation?: string
+      dropoffMode?: string
+      dropoffLocation?: string
       note?: string
+    }
+
+    if (pickupMode !== "self" && pickupMode !== "arrange") {
+      return badRequest("pickupMode must be 'self' or 'arrange'")
+    }
+    if (dropoffMode !== "self" && dropoffMode !== "arrange") {
+      return badRequest("dropoffMode must be 'self' or 'arrange'")
+    }
+    if (pickupMode === "arrange" && !pickupLocation) {
+      return badRequest("pickupLocation is required when pickupMode is 'arrange'")
+    }
+    if (dropoffMode === "arrange" && !dropoffLocation) {
+      return badRequest("dropoffLocation is required when dropoffMode is 'arrange'")
     }
 
     if (!activityId) return badRequest("activityId is required")
@@ -64,8 +88,17 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
 
     // Calculate cost
     const activityFee = activityDTO.price * seniorIds.length
-    const transportFee = (transport === "pickup" || transport === "dropoff") ? TRANSPORT_FEE : 0
+    const pickupFee = pickupMode === "arrange" ? TRANSPORT_FEE : 0
+    const dropoffFee = dropoffMode === "arrange" ? TRANSPORT_FEE : 0
+    const transportFee = pickupFee + dropoffFee
     const totalAmount = activityFee + transportFee
+
+    // Compose a note that preserves senior list + transport metadata
+    const metaParts: string[] = []
+    metaParts.push(`Seniors: ${seniorIds.join(", ")}`)
+    metaParts.push(`Pickup: ${pickupMode}${pickupMode === "arrange" ? ` (${pickupLocation})` : ""}`)
+    metaParts.push(`Dropoff: ${dropoffMode}${dropoffMode === "arrange" ? ` (${dropoffLocation})` : ""}`)
+    const composedNote = note ? `${note} | ${metaParts.join(" | ")}` : metaParts.join(" | ")
 
     try {
       // Create a single booking for the activity (use first senior as primary)
@@ -78,7 +111,7 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
         activityDTO.location,
         totalAmount,
         "THB",
-        note ?? `Seniors: ${seniorIds.join(", ")}`,
+        composedNote,
       )
 
       // Persist the updated participant count
@@ -90,7 +123,10 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
         bookingId: bookingDTO.id,
         activityId,
         seniorIds,
-        transport: transport ?? "self",
+        pickupMode,
+        pickupLocation: pickupMode === "arrange" ? pickupLocation : undefined,
+        dropoffMode,
+        dropoffLocation: dropoffMode === "arrange" ? dropoffLocation : undefined,
         activityFee,
         transportFee,
         totalAmount,

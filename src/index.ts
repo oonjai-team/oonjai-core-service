@@ -153,7 +153,7 @@ registry
   .register(createStatusLog, [statusLogService])
   .register(getStatusLogs, [statusLogService])
   // Bookings
-  .register(getBookings, [bookingService, userService])
+  .register(getBookings, [bookingService, userService, activityService])
   .register(createBooking, [bookingService])
   .register(getSeniorServiceConflicts, [bookingService, seniorManagementService])
   .register(getBookingById, [bookingService])

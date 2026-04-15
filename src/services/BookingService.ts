@@ -65,7 +65,10 @@ export class BookingService implements IService {
 
     const caretakerDTO = caretakerProfile.toDTO()
     const durationHours = (newEnd - newStart) / (1000 * 60 * 60)
-    const estimatedCost = caretakerDTO.hourlyRate * durationHours
+    // Round to 2 decimals to match the NUMERIC(12,2) column; otherwise the
+    // in-memory value and the reloaded DB value diverge and strict-equality
+    // checks (e.g. PaymentService amount match) fail.
+    const estimatedCost = Math.round(caretakerDTO.hourlyRate * durationHours * 100) / 100
 
     const booking = new Booking(
       adultChildId,
@@ -137,7 +140,7 @@ export class BookingService implements IService {
     const booking = new Booking(
       adultChildId,
       seniorId,
-      adultChildId, // caretakerId not applicable — use self as placeholder
+      null, // caretakerId not applicable for activity bookings
       ServiceType.ACTIVITY,
       BookingStatus.CREATED,
       startDate,
@@ -219,19 +222,22 @@ export class BookingService implements IService {
     // bookingRepo.save handles persisting the review to its own table
     await this.bookingRepo.save(booking)
 
-    // Recalculate caretaker's average rating
-    const caretakerId = new UUID(booking.getCaretakerId().toString())
-    const caretakerUser = await this.userRepo.findById(caretakerId)
-    if (caretakerUser) {
-      const profile = caretakerUser.getCaretaker()
-      if (profile) {
-        const dto = profile.toDTO()
-        const newReviewCount = dto.reviewCount + 1
-        const newRating = (dto.rating * dto.reviewCount + rating) / newReviewCount
-        await this.userRepo.updateAttrProfile(caretakerId, {
-          rating: Math.round(newRating * 100) / 100,
-          reviewCount: newReviewCount,
-        })
+    // Recalculate caretaker's average rating (skip if no caretaker, e.g. activity bookings)
+    const caretakerIdVal = booking.getCaretakerId()
+    if (caretakerIdVal) {
+      const caretakerId = new UUID(caretakerIdVal.toString())
+      const caretakerUser = await this.userRepo.findById(caretakerId)
+      if (caretakerUser) {
+        const profile = caretakerUser.getCaretaker()
+        if (profile) {
+          const dto = profile.toDTO()
+          const newReviewCount = dto.reviewCount + 1
+          const newRating = (dto.rating * dto.reviewCount + rating) / newReviewCount
+          await this.userRepo.updateAttrProfile(caretakerId, {
+            rating: Math.round(newRating * 100) / 100,
+            reviewCount: newReviewCount,
+          })
+        }
       }
     }
 

@@ -36,7 +36,9 @@ export class PaymentService implements IService {
     }
 
     const dto = booking.toDTO()
-    if (amount !== dto.estimatedCost) {
+    // Tolerance compare: stored NUMERIC(12,2) and in-memory floats can differ
+    // by sub-cent amounts; reject only on real discrepancies.
+    if (Math.abs(amount - dto.estimatedCost) > 0.01) {
       throw new Error("BAD_REQUEST: amount does not match booking estimated cost")
     }
 
