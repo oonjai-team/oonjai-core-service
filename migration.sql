@@ -5,6 +5,7 @@
 -- ============================================================
 
 -- Drop in reverse dependency order
+DROP TABLE IF EXISTS "ACTIVITY_PRECAUTION_CACHE" CASCADE;
 DROP TABLE IF EXISTS "VERIFICATION_DOCUMENT" CASCADE;
 DROP TABLE IF EXISTS "VERIFICATION" CASCADE;
 DROP TABLE IF EXISTS "STATUS_LOG" CASCADE;
@@ -264,3 +265,17 @@ CREATE TABLE "Point_of_Contact" (
   "LastName"    VARCHAR(100),
   "PhoneNumber" VARCHAR(50)
 );
+
+-- ============================================================
+-- 13. ACTIVITY_PRECAUTION_CACHE (AI-generated precaution cache)
+-- ============================================================
+CREATE TABLE "ACTIVITY_PRECAUTION_CACHE" (
+  "ActivityID"  UUID NOT NULL,
+  "UserID"      UUID NOT NULL,
+  "Signature"   TEXT NOT NULL,
+  "Result"      JSONB NOT NULL,
+  "CreatedDate" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY ("ActivityID", "UserID")
+);
+
+CREATE INDEX idx_activity_precaution_cache_user ON "ACTIVITY_PRECAUTION_CACHE" ("UserID");

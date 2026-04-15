@@ -44,6 +44,9 @@ import {getActivities} from "@endpoint/activities/getActivities"
 import {getActivityById} from "@endpoint/activities/getActivityById"
 import {getBookedSeniors} from "@endpoint/activities/getBookedSeniors"
 import {getSeniorConflicts} from "@endpoint/activities/getSeniorConflicts"
+import {getActivityPrecautions, makePrecautionCacheRepoService} from "@endpoint/activities/getActivityPrecautions"
+import {OllamaService} from "@serv/OllamaService"
+import {PgPrecautionCacheRepository} from "@repo/PgPrecautionCacheRepository"
 import {createActivityBooking} from "@endpoint/bookings/createActivityBooking"
 
 import {PgIncidentLogRepository} from "@repo/PgIncidentLogRepository"
@@ -95,6 +98,13 @@ const paymentService = new PaymentService(paymentRepo, bookingRepo)
 const incidentLogService = new IncidentLogService(incidentLogRepo, bookingRepo)
 const verificationService = new VerificationService(verificationRepo, userRepo)
 const activityService = new ActivityService(activityRepo)
+const ollamaService = new OllamaService(
+  process.env["OLLAMA_URL"] ?? "https://ollama.com",
+  process.env["OLLAMA_MODEL"] ?? "gpt-oss:20b",
+  process.env["OLLAMA_API_KEY"] ?? ""
+)
+const precautionCacheRepo = new PgPrecautionCacheRepository()
+const precautionCacheSvc = makePrecautionCacheRepoService(precautionCacheRepo)
 const statusLogService = new StatusLogService(statusLogRepo)
 const authService = new AuthService(userService, jwtSessionService)
 const lineAuthService = new LineOauthService(
@@ -169,6 +179,7 @@ registry
   .register(getActivityById, [activityService])
   .register(getBookedSeniors, [bookingService])
   .register(getSeniorConflicts, [bookingService, activityService, seniorManagementService])
+  .register(getActivityPrecautions, [activityService, seniorManagementService, ollamaService, precautionCacheSvc])
   // Activity Bookings
   .register(createActivityBooking, [bookingService, activityService])
   // Verifications
