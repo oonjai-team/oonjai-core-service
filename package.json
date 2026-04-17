@@ -14,7 +14,8 @@
     "dev": "DEBUG=true bun serve",
     "serve": "bun run src/index.ts",
     "test": "bun test",
-    "test-suite": "http-server ./debug"
+    "test-suite": "http-server ./debug",
+    "seed:activities": "bun run scripts/seed-activities.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.1",

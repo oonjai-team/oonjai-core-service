@@ -4,6 +4,10 @@
 -- matching the application domain model.
 -- ============================================================
 
+-- pg_trgm powers the GIN trigram indexes on ACTIVITY.Title / Location
+-- that back the case-insensitive "search" filter via ILIKE '%q%'.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- Drop in reverse dependency order
 DROP TABLE IF EXISTS "ACTIVITY_PRECAUTION_CACHE" CASCADE;
 DROP TABLE IF EXISTS "VERIFICATION_DOCUMENT" CASCADE;
@@ -138,6 +142,12 @@ CREATE TABLE "ACTIVITY" (
   "Images"           JSONB DEFAULT '[]',
   "CreatedDate"      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_activity_category   ON "ACTIVITY" ("Category");
+CREATE INDEX idx_activity_start_date ON "ACTIVITY" ("StartDate");
+CREATE INDEX idx_activity_price      ON "ACTIVITY" ("Price");
+CREATE INDEX idx_activity_location_trgm ON "ACTIVITY" USING GIN ("Location" gin_trgm_ops);
+CREATE INDEX idx_activity_title_trgm    ON "ACTIVITY" USING GIN ("Title" gin_trgm_ops);
 
 -- ============================================================
 -- 7. BOOKING   (PK is TEXT for "BK-XXXXXXXX" format)

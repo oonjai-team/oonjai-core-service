@@ -1,4 +1,4 @@
-import type {IActivityRepository} from "@repo/IActivityRepository"
+import type {ActivityFilter, IActivityRepository} from "@repo/IActivityRepository"
 import type {ITestDatabase} from "../lib/TestDatabase"
 import {Activity} from "@entity/Activity"
 import {UUID} from "@type/uuid"
@@ -9,6 +9,47 @@ export class TestActivityRepository implements IActivityRepository {
 
   public async findAll(): Promise<Activity[]> {
     return this.db.getAll("activity").map(r => new Activity(r))
+  }
+
+  public async find(filter: ActivityFilter): Promise<Activity[]> {
+    const search = filter.search?.trim().toLowerCase()
+    const category = filter.category?.trim().toLowerCase()
+    const location = filter.location?.trim().toLowerCase()
+    const priceMin = filter.priceMin
+    const priceMax = filter.priceMax
+
+    const all = this.db.getAll("activity").map(r => new Activity(r))
+
+    const filtered = all.filter(a => {
+      const dto = a.toDTO()
+      if (category && (dto.category ?? "").toLowerCase() !== category) return false
+      if (location && !(dto.location ?? "").toLowerCase().includes(location)) return false
+      if (priceMin !== undefined && dto.price < priceMin) return false
+      if (priceMax !== undefined && dto.price > priceMax) return false
+      if (search) {
+        const haystack = [
+          dto.title,
+          dto.category,
+          dto.host,
+          dto.location,
+          ...(dto.tags ?? []),
+        ].join(" ").toLowerCase()
+        if (!haystack.includes(search)) return false
+      }
+      return true
+    })
+
+    const offset = filter.offset ?? 0
+    const end = filter.limit !== undefined ? offset + filter.limit : undefined
+    return filtered.slice(offset, end)
+  }
+
+  public async count(filter: ActivityFilter): Promise<number> {
+    const unpaged: ActivityFilter = { ...filter }
+    delete unpaged.limit
+    delete unpaged.offset
+    const all = await this.find(unpaged)
+    return all.length
   }
 
   public async findById(id: string): Promise<Activity | undefined> {

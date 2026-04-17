@@ -1,4 +1,4 @@
-import type {IActivityRepository} from "@repo/IActivityRepository"
+import type {ActivityFilter, IActivityRepository} from "@repo/IActivityRepository"
 import {Activity} from "@entity/Activity"
 import {UUID} from "@type/uuid"
 import {Timestamp} from "@type/timestamp"
@@ -9,6 +9,61 @@ export class PgActivityRepository implements IActivityRepository {
   async findAll(): Promise<Activity[]> {
     const rows = await sql`SELECT * FROM "ACTIVITY"`
     return rows.map(row => this.toEntity(row))
+  }
+
+  async find(filter: ActivityFilter): Promise<Activity[]> {
+    const search = filter.search?.trim()
+    const category = filter.category?.trim()
+    const location = filter.location?.trim()
+    const priceMin = filter.priceMin
+    const priceMax = filter.priceMax
+    const limit = filter.limit
+    const offset = filter.offset ?? 0
+
+    const rows = await sql`
+      SELECT * FROM "ACTIVITY"
+      WHERE 1 = 1
+        ${category ? sql`AND LOWER("Category") = LOWER(${category})` : sql``}
+        ${location ? sql`AND "Location" ILIKE ${'%' + location + '%'}` : sql``}
+        ${priceMin !== undefined ? sql`AND "Price" >= ${priceMin}` : sql``}
+        ${priceMax !== undefined ? sql`AND "Price" <= ${priceMax}` : sql``}
+        ${search ? sql`AND (
+          "Title" ILIKE ${'%' + search + '%'}
+          OR "Category" ILIKE ${'%' + search + '%'}
+          OR "Host" ILIKE ${'%' + search + '%'}
+          OR "Location" ILIKE ${'%' + search + '%'}
+          OR "Tags"::text ILIKE ${'%' + search + '%'}
+        )` : sql``}
+      ORDER BY "StartDate" ASC NULLS LAST, "ActivityID" ASC
+      ${limit !== undefined ? sql`LIMIT ${limit}` : sql``}
+      ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
+    `
+    return rows.map(row => this.toEntity(row))
+  }
+
+  async count(filter: ActivityFilter): Promise<number> {
+    const search = filter.search?.trim()
+    const category = filter.category?.trim()
+    const location = filter.location?.trim()
+    const priceMin = filter.priceMin
+    const priceMax = filter.priceMax
+
+    const rows = await sql`
+      SELECT COUNT(*)::int AS count FROM "ACTIVITY"
+      WHERE 1 = 1
+        ${category ? sql`AND LOWER("Category") = LOWER(${category})` : sql``}
+        ${location ? sql`AND "Location" ILIKE ${'%' + location + '%'}` : sql``}
+        ${priceMin !== undefined ? sql`AND "Price" >= ${priceMin}` : sql``}
+        ${priceMax !== undefined ? sql`AND "Price" <= ${priceMax}` : sql``}
+        ${search ? sql`AND (
+          "Title" ILIKE ${'%' + search + '%'}
+          OR "Category" ILIKE ${'%' + search + '%'}
+          OR "Host" ILIKE ${'%' + search + '%'}
+          OR "Location" ILIKE ${'%' + search + '%'}
+          OR "Tags"::text ILIKE ${'%' + search + '%'}
+        )` : sql``}
+    `
+    return Number(rows[0]?.count ?? 0)
   }
 
   async findById(id: string): Promise<Activity | undefined> {
