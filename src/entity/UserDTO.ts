@@ -35,7 +35,6 @@ export interface CareTakerUserAttributes {
   rating: number
   reviewCount: number
   isVerified: boolean
-  isAvailable: boolean
   contactInfo: string
   permission: string
 }

@@ -43,7 +43,6 @@ export const register: Endpoint<[AuthService]> = {
         rating: 0,
         reviewCount: 0,
         isVerified: false,
-        isAvailable: true,
       }
     }
 

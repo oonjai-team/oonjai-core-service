@@ -67,7 +67,6 @@ export class TestUserRepository implements IUserRepository {
 
   async findAvailableCaretaker(filters: CaretakerFilter): Promise<User[]> {
     let results: (CareTakerUserAttributes & {id: string})[] = this.db.getAll("caretaker")
-      .filter(c => c.isAvailable)
 
     if (filters.specialization) {
       results = results.filter(c =>

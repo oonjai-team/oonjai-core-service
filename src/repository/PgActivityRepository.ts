@@ -4,10 +4,43 @@ import {UUID} from "@type/uuid"
 import {Timestamp} from "@type/timestamp"
 import sql from "../lib/postgres"
 
+// SELECT columns that ship back to toEntity. ACTIVITY LEFT JOIN POC LEFT JOIN PROVIDER.
+const selectColumns = sql`
+  a."ActivityID",
+  a."Title",
+  a."Category",
+  a."Tags",
+  a."POCID",
+  a."StartDate",
+  a."EndDate",
+  a."Location",
+  a."Price",
+  a."ParticipantCount",
+  a."Duration",
+  a."MaxPeople",
+  a."Rating",
+  a."Reviews",
+  a."Images",
+  a."CreatedDate",
+  poc."FirstName"   AS "HostFirstName",
+  poc."LastName"    AS "HostLastName",
+  poc."PhoneNumber" AS "HostPhoneNumber",
+  poc."Avatar"      AS "HostAvatar",
+  poc."Description" AS "HostDescription",
+  pr."ProviderID"   AS "ProviderID",
+  pr."ProviderName" AS "ProviderName"
+`
+
+const selectFrom = sql`
+  FROM "ACTIVITY" a
+  LEFT JOIN "Point_of_Contact" poc ON poc."POCID" = a."POCID"
+  LEFT JOIN "PROVIDER"         pr  ON pr."ProviderID" = poc."ProviderID"
+`
+
 export class PgActivityRepository implements IActivityRepository {
 
   async findAll(): Promise<Activity[]> {
-    const rows = await sql`SELECT * FROM "ACTIVITY"`
+    const rows = await sql`SELECT ${selectColumns} ${selectFrom}`
     return rows.map(row => this.toEntity(row))
   }
 
@@ -21,20 +54,21 @@ export class PgActivityRepository implements IActivityRepository {
     const offset = filter.offset ?? 0
 
     const rows = await sql`
-      SELECT * FROM "ACTIVITY"
+      SELECT ${selectColumns}
+      ${selectFrom}
       WHERE 1 = 1
-        ${category ? sql`AND LOWER("Category") = LOWER(${category})` : sql``}
-        ${location ? sql`AND "Location" ILIKE ${'%' + location + '%'}` : sql``}
-        ${priceMin !== undefined ? sql`AND "Price" >= ${priceMin}` : sql``}
-        ${priceMax !== undefined ? sql`AND "Price" <= ${priceMax}` : sql``}
+        ${category ? sql`AND LOWER(a."Category") = LOWER(${category})` : sql``}
+        ${location ? sql`AND a."Location" ILIKE ${'%' + location + '%'}` : sql``}
+        ${priceMin !== undefined ? sql`AND a."Price" >= ${priceMin}` : sql``}
+        ${priceMax !== undefined ? sql`AND a."Price" <= ${priceMax}` : sql``}
         ${search ? sql`AND (
-          "Title" ILIKE ${'%' + search + '%'}
-          OR "Category" ILIKE ${'%' + search + '%'}
-          OR "Host" ILIKE ${'%' + search + '%'}
-          OR "Location" ILIKE ${'%' + search + '%'}
-          OR "Tags"::text ILIKE ${'%' + search + '%'}
+          a."Title" ILIKE ${'%' + search + '%'}
+          OR a."Category" ILIKE ${'%' + search + '%'}
+          OR (poc."FirstName" || ' ' || poc."LastName") ILIKE ${'%' + search + '%'}
+          OR a."Location" ILIKE ${'%' + search + '%'}
+          OR a."Tags"::text ILIKE ${'%' + search + '%'}
         )` : sql``}
-      ORDER BY "StartDate" ASC NULLS LAST, "ActivityID" ASC
+      ORDER BY a."StartDate" ASC NULLS LAST, a."ActivityID" ASC
       ${limit !== undefined ? sql`LIMIT ${limit}` : sql``}
       ${offset > 0 ? sql`OFFSET ${offset}` : sql``}
     `
@@ -49,18 +83,19 @@ export class PgActivityRepository implements IActivityRepository {
     const priceMax = filter.priceMax
 
     const rows = await sql`
-      SELECT COUNT(*)::int AS count FROM "ACTIVITY"
+      SELECT COUNT(*)::int AS count
+      ${selectFrom}
       WHERE 1 = 1
-        ${category ? sql`AND LOWER("Category") = LOWER(${category})` : sql``}
-        ${location ? sql`AND "Location" ILIKE ${'%' + location + '%'}` : sql``}
-        ${priceMin !== undefined ? sql`AND "Price" >= ${priceMin}` : sql``}
-        ${priceMax !== undefined ? sql`AND "Price" <= ${priceMax}` : sql``}
+        ${category ? sql`AND LOWER(a."Category") = LOWER(${category})` : sql``}
+        ${location ? sql`AND a."Location" ILIKE ${'%' + location + '%'}` : sql``}
+        ${priceMin !== undefined ? sql`AND a."Price" >= ${priceMin}` : sql``}
+        ${priceMax !== undefined ? sql`AND a."Price" <= ${priceMax}` : sql``}
         ${search ? sql`AND (
-          "Title" ILIKE ${'%' + search + '%'}
-          OR "Category" ILIKE ${'%' + search + '%'}
-          OR "Host" ILIKE ${'%' + search + '%'}
-          OR "Location" ILIKE ${'%' + search + '%'}
-          OR "Tags"::text ILIKE ${'%' + search + '%'}
+          a."Title" ILIKE ${'%' + search + '%'}
+          OR a."Category" ILIKE ${'%' + search + '%'}
+          OR (poc."FirstName" || ' ' || poc."LastName") ILIKE ${'%' + search + '%'}
+          OR a."Location" ILIKE ${'%' + search + '%'}
+          OR a."Tags"::text ILIKE ${'%' + search + '%'}
         )` : sql``}
     `
     return Number(rows[0]?.count ?? 0)
@@ -68,7 +103,9 @@ export class PgActivityRepository implements IActivityRepository {
 
   async findById(id: string): Promise<Activity | undefined> {
     const rows = await sql`
-      SELECT * FROM "ACTIVITY" WHERE "ActivityID" = ${id}
+      SELECT ${selectColumns}
+      ${selectFrom}
+      WHERE a."ActivityID" = ${id}
     `
     const row = rows[0]
     if (!row) return undefined
@@ -79,13 +116,12 @@ export class PgActivityRepository implements IActivityRepository {
     const dto = activity.toDTO()
     const rows = await sql`
       INSERT INTO "ACTIVITY" (
-        "Title", "Category", "Tags", "Host", "HostAvatar", "HostDescription",
+        "Title", "Category", "Tags", "POCID",
         "StartDate", "EndDate", "Location", "Price", "ParticipantCount",
         "Duration", "MaxPeople", "Rating", "Reviews", "Images", "CreatedDate"
       )
       VALUES (
-        ${dto.title}, ${dto.category}, ${JSON.stringify(dto.tags)},
-        ${dto.host}, ${dto.hostAvatar}, ${dto.hostDescription},
+        ${dto.title}, ${dto.category}, ${JSON.stringify(dto.tags)}, ${dto.pocId ?? null},
         ${dto.startDate}, ${dto.endDate}, ${dto.location},
         ${dto.price}, ${dto.participantCount}, ${dto.duration},
         ${dto.maxPeople}, ${dto.rating}, ${dto.reviews},
@@ -104,9 +140,7 @@ export class PgActivityRepository implements IActivityRepository {
       SET "Title"            = ${dto.title},
           "Category"         = ${dto.category},
           "Tags"             = ${JSON.stringify(dto.tags)},
-          "Host"             = ${dto.host},
-          "HostAvatar"       = ${dto.hostAvatar},
-          "HostDescription"  = ${dto.hostDescription},
+          "POCID"            = ${dto.pocId ?? null},
           "StartDate"        = ${dto.startDate},
           "EndDate"          = ${dto.endDate},
           "Location"         = ${dto.location},
@@ -136,9 +170,15 @@ export class PgActivityRepository implements IActivityRepository {
       title: row.Title,
       category: row.Category,
       tags: parseJsonArray(row.Tags),
-      host: row.Host,
-      hostAvatar: row.HostAvatar,
-      hostDescription: row.HostDescription,
+      pocId: row.POCID ?? undefined,
+      hostFirstName: row.HostFirstName ?? undefined,
+      hostLastName: row.HostLastName ?? undefined,
+      hostPhoneNumber: row.HostPhoneNumber ?? undefined,
+      providerId: row.ProviderID ?? undefined,
+      providerName: row.ProviderName ?? undefined,
+      host: "",                                          // composed in Activity.toDTO
+      hostAvatar: row.HostAvatar ?? "",                  // from Point_of_Contact.Avatar
+      hostDescription: row.HostDescription ?? "",        // from Point_of_Contact.Description
       startDate: row.StartDate,
       endDate: row.EndDate,
       displayDate: "",

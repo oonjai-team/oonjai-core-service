@@ -6,7 +6,9 @@
 //   - idx_activity_location_trgm → 5 cities × multiple venues
 //
 // Images come from picsum.photos (no API key, free) seeded so each activity
-// gets a stable, varied set. Host avatars come from i.pravatar.cc.
+// gets a stable, varied set. Hosts come from Point_of_Contact — this script
+// reads existing POC rows and assigns them deterministically so consecutive
+// activities share the same host (cluster by index).
 //
 // Usage:  bun run scripts/seed-activities.ts [--count=100] [--reset]
 
@@ -94,17 +96,6 @@ const TAG_POOL: Record<Category, string[]> = {
   "Religion":         ["Religion", "Meditation", "Cultural", "Spiritual"],
 }
 
-const HOSTS = [
-  ["Tom Brady", "Former athlete passionate about community fitness."],
-  ["Grandma Mali", "Local chef passionate about traditional Thai cooking."],
-  ["Ajahn Somsak", "Temple monk leading mindfulness practices."],
-  ["Coach Nong", "Certified fitness coach focused on senior mobility."],
-  ["Khun Ploy",   "Wellness therapist and yoga instructor."],
-  ["Dr. Preecha", "Retired physician hosting community health talks."],
-  ["Auntie Noi",  "Community elder and long-time Bangkok resident."],
-  ["Uncle Somchai","Local historian and storytelling enthusiast."],
-] as const
-
 const DURATIONS = ["60 Mins", "90 Mins", "120 Mins", "150 Mins", "180 Mins"]
 
 function pickN<T>(arr: readonly T[], n: number): T[] {
@@ -124,7 +115,7 @@ function randomInt(min: number, max: number): number {
   return Math.floor(rand(min, max + 1))
 }
 
-function buildActivity(index: number) {
+function buildActivity(index: number, pocIds: string[]) {
   const category = CATEGORIES[index % CATEGORIES.length]
   const city = CITIES[index % CITIES.length]
   const venues = VENUES[city]
@@ -132,7 +123,12 @@ function buildActivity(index: number) {
   const titles = TITLE_TEMPLATES[category]
   const title = titles[index % titles.length]
   const tags = pickN(TAG_POOL[category], randomInt(2, 3))
-  const [host, hostDescription] = HOSTS[index % HOSTS.length]
+
+  // Deterministic POC assignment: consecutive activities share the same host
+  // so a given host runs a small cluster of activities (realistic scheduling).
+  const pocId = pocIds.length > 0
+    ? pocIds[Math.floor((index * pocIds.length) / Math.max(1, TOTAL))]
+    : null
 
   // Spread StartDate uniformly across ±90 days from today.
   const dayOffset = Math.floor(rand(-90, 90))
@@ -154,16 +150,11 @@ function buildActivity(index: number) {
   const seedBase = `oonjai-${index}`
   const images = Array.from({length: 5}, (_, i) => `https://picsum.photos/seed/${seedBase}-${i}/800/600`)
 
-  const hostSlug = host.toLowerCase().replace(/\s+/g, "-")
-  const hostAvatar = `https://i.pravatar.cc/150?u=${hostSlug}`
-
   return {
     title,
     category,
     tags,
-    host,
-    hostAvatar,
-    hostDescription,
+    pocId,
     startDate: start,
     endDate: end,
     location: `${venue}, ${city}`,
@@ -189,20 +180,26 @@ async function main() {
     console.log(`existing ACTIVITY rows: ${existing[0]!.n}`)
     console.log(`seeding ${TOTAL} new activities...`)
 
+    const pocRows = await sql`SELECT "POCID" FROM "Point_of_Contact" ORDER BY "POCID"`
+    const pocIds = pocRows.map((r: any) => r.POCID as string)
+    if (pocIds.length === 0) {
+      console.log("WARNING: no Point_of_Contact rows found — activities will have POCID=NULL. Run the POC seed first.")
+    } else {
+      console.log(`found ${pocIds.length} POCs — assigning deterministically across activities`)
+    }
+
     const BATCH = 200
     const now = new Date()
     let inserted = 0
     for (let start = 0; start < TOTAL; start += BATCH) {
       const rows = []
       for (let i = start; i < Math.min(start + BATCH, TOTAL); i++) {
-        const a = buildActivity(i)
+        const a = buildActivity(i, pocIds)
         rows.push({
           Title: a.title,
           Category: a.category,
           Tags: JSON.stringify(a.tags),
-          Host: a.host,
-          HostAvatar: a.hostAvatar,
-          HostDescription: a.hostDescription,
+          POCID: a.pocId,
           StartDate: a.startDate,
           EndDate: a.endDate,
           Location: a.location,

@@ -9,14 +9,13 @@ export class Caretaker {
   private rating: number
   private reviewCount: number
   private isVerified: boolean
-  private isAvailable: boolean
   private contactInfo: string
   private permission: string
 
   constructor(caretakerAttr: CareTakerUserAttributes)
-  constructor(bio: string, specialization: string, hourlyRate: number, currency: string, experience: number, rating: number, reviewCount: number, isVerified: boolean, isAvailable: boolean, contactInfo: string, permission: string)
+  constructor(bio: string, specialization: string, hourlyRate: number, currency: string, experience: number, rating: number, reviewCount: number, isVerified: boolean, contactInfo: string, permission: string)
 
-  constructor(...args: [CareTakerUserAttributes] | [string, string, number, string, number, number, number, boolean, boolean, string, string]) {
+  constructor(...args: [CareTakerUserAttributes] | [string, string, number, string, number, number, number, boolean, string, string]) {
     if (typeof args[0] === "object" && "bio" in args[0]) {
       const attr = args[0] as CareTakerUserAttributes
       this.bio = attr.bio
@@ -27,13 +26,12 @@ export class Caretaker {
       this.rating = attr.rating
       this.reviewCount = attr.reviewCount
       this.isVerified = attr.isVerified
-      this.isAvailable = attr.isAvailable
       this.contactInfo = attr.contactInfo
       this.permission = attr.permission
       return
     }
 
-    const arr = args as [string, string, number, string, number, number, number, boolean, boolean, string, string]
+    const arr = args as [string, string, number, string, number, number, number, boolean, string, string]
     this.bio = arr[0]
     this.specialization = arr[1]
     this.hourlyRate = arr[2]
@@ -42,9 +40,8 @@ export class Caretaker {
     this.rating = arr[5]
     this.reviewCount = arr[6]
     this.isVerified = arr[7]
-    this.isAvailable = arr[8]
-    this.contactInfo = arr[9]
-    this.permission = arr[10]
+    this.contactInfo = arr[8]
+    this.permission = arr[9]
   }
 
   public toDTO(): CareTakerUserAttributes {
@@ -57,7 +54,6 @@ export class Caretaker {
       rating: this.rating,
       reviewCount: this.reviewCount,
       isVerified: this.isVerified,
-      isAvailable: this.isAvailable,
       contactInfo: this.contactInfo,
       permission: this.permission,
     }

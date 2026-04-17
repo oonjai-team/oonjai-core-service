@@ -91,12 +91,10 @@ CREATE TABLE "CARETAKER" (
   "Rating"         NUMERIC(3,2) DEFAULT 0,
   "ReviewCount"    INTEGER DEFAULT 0,
   "IsVerified"     BOOLEAN DEFAULT FALSE,
-  "IsAvailable"    BOOLEAN DEFAULT TRUE,
   "ContactInfo"    TEXT,
   "Permission"     VARCHAR(50)
 );
 
-CREATE INDEX idx_caretaker_available   ON "CARETAKER" ("IsAvailable") WHERE "IsAvailable" = TRUE;
 CREATE INDEX idx_caretaker_rating      ON "CARETAKER" ("Rating" DESC);
 CREATE INDEX idx_caretaker_hourly_rate ON "CARETAKER" ("HourlyRate");
 
@@ -142,9 +140,7 @@ CREATE TABLE "ACTIVITY" (
   "Title"            VARCHAR(255),
   "Category"         VARCHAR(100),
   "Tags"             JSONB DEFAULT '[]',
-  "Host"             VARCHAR(200),
-  "HostAvatar"       TEXT,
-  "HostDescription"  TEXT,
+  "POCID"            UUID,  -- FK constraint added after Point_of_Contact is created
   "StartDate"        TIMESTAMPTZ,
   "EndDate"          TIMESTAMPTZ,
   "Location"         VARCHAR(500),
@@ -161,6 +157,7 @@ CREATE TABLE "ACTIVITY" (
 CREATE INDEX idx_activity_category   ON "ACTIVITY" ("Category");
 CREATE INDEX idx_activity_start_date ON "ACTIVITY" ("StartDate");
 CREATE INDEX idx_activity_price      ON "ACTIVITY" ("Price");
+CREATE INDEX idx_activity_poc        ON "ACTIVITY" ("POCID");
 CREATE INDEX idx_activity_location_trgm ON "ACTIVITY" USING GIN ("Location" gin_trgm_ops);
 CREATE INDEX idx_activity_title_trgm    ON "ACTIVITY" USING GIN ("Title" gin_trgm_ops);
 
@@ -288,8 +285,17 @@ CREATE TABLE "Point_of_Contact" (
   "ProviderID"  UUID REFERENCES "PROVIDER"("ProviderID"),
   "FirstName"   VARCHAR(100),
   "LastName"    VARCHAR(100),
-  "PhoneNumber" VARCHAR(50)
+  "PhoneNumber" VARCHAR(50),
+  -- Display fields surfaced to clients via ACTIVITY join. Avatar is a URL
+  -- (pravatar / pre-uploaded asset); Description is a short bio.
+  "Avatar"      TEXT,
+  "Description" TEXT
 );
+
+-- Deferred FK: ACTIVITY.POCID → Point_of_Contact.POCID (table created just above).
+ALTER TABLE "ACTIVITY"
+  ADD CONSTRAINT fk_activity_poc
+  FOREIGN KEY ("POCID") REFERENCES "Point_of_Contact"("POCID") ON DELETE SET NULL;
 
 -- ============================================================
 -- 13. ACTIVITY_PRECAUTION_CACHE (AI-generated precaution cache)

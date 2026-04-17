@@ -70,7 +70,6 @@ export function seedCaretaker(env: TestEnv, email = "ct@example.com", overrides:
     rating: overrides.rating ?? 4.5,
     reviewCount: 0,
     isVerified: true,
-    isAvailable: true,
     contactInfo: "0800000000",
     permission: "all",
   })

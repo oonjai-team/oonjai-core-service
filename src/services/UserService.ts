@@ -37,7 +37,7 @@ export class UserService implements IService {
     const caretaker = new Caretaker(
       attr.bio, attr.specialization, attr.hourlyRate, attr.currency,
       attr.experience, attr.rating, attr.reviewCount, attr.isVerified,
-      attr.isAvailable, attr.contactInfo, attr.permission
+      attr.contactInfo, attr.permission
     )
 
     const [ok, uuid] = await this.userRepo.save(new User(email, firstname, lastname, TimestampHelper.now(), RoleEnum.CARETAKER, undefined, caretaker))

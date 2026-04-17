@@ -29,11 +29,11 @@ export class PgUserRepository implements IUserRepository {
           await tx`
             INSERT INTO "CARETAKER" (
               "UserID", "Bio", "Specialization", "HourlyRate", "Currency",
-              "Experience", "Rating", "ReviewCount", "IsVerified", "IsAvailable",
+              "Experience", "Rating", "ReviewCount", "IsVerified",
               "ContactInfo", "Permission"
             ) VALUES (
               ${userId}, ${ct.bio}, ${ct.specialization}, ${ct.hourlyRate}, ${ct.currency},
-              ${ct.experience}, ${ct.rating}, ${ct.reviewCount}, ${ct.isVerified}, ${ct.isAvailable},
+              ${ct.experience}, ${ct.rating}, ${ct.reviewCount}, ${ct.isVerified},
               ${ct.contactInfo}, ${ct.permission}
             )
           `
@@ -77,11 +77,11 @@ export class PgUserRepository implements IUserRepository {
         await tx`
           INSERT INTO "CARETAKER" (
             "UserID", "Bio", "Specialization", "HourlyRate", "Currency",
-            "Experience", "Rating", "ReviewCount", "IsVerified", "IsAvailable",
+            "Experience", "Rating", "ReviewCount", "IsVerified",
             "ContactInfo", "Permission"
           ) VALUES (
             ${uid.toString()}, ${ct.bio}, ${ct.specialization}, ${ct.hourlyRate}, ${ct.currency},
-            ${ct.experience}, ${ct.rating}, ${ct.reviewCount}, ${ct.isVerified}, ${ct.isAvailable},
+            ${ct.experience}, ${ct.rating}, ${ct.reviewCount}, ${ct.isVerified},
             ${ct.contactInfo}, ${ct.permission}
           )
           ON CONFLICT ("UserID") DO UPDATE SET
@@ -93,7 +93,6 @@ export class PgUserRepository implements IUserRepository {
             "Rating" = EXCLUDED."Rating",
             "ReviewCount" = EXCLUDED."ReviewCount",
             "IsVerified" = EXCLUDED."IsVerified",
-            "IsAvailable" = EXCLUDED."IsAvailable",
             "ContactInfo" = EXCLUDED."ContactInfo",
             "Permission" = EXCLUDED."Permission"
         `
@@ -133,7 +132,7 @@ export class PgUserRepository implements IUserRepository {
       SELECT
         u."UserID", u."FirstName", u."LastName", u."Email", u."Phone", u."Role", u."CreatedDate",
         c."Bio", c."Specialization", c."HourlyRate", c."Currency",
-        c."Experience", c."Rating", c."ReviewCount", c."IsVerified", c."IsAvailable",
+        c."Experience", c."Rating", c."ReviewCount", c."IsVerified",
         c."ContactInfo", c."Permission",
         ac."Phone" AS "ac_Phone", ac."Relationship", ac."Goal", ac."Concerns"
       FROM "USER" u
@@ -151,7 +150,7 @@ export class PgUserRepository implements IUserRepository {
       SELECT
         u."UserID", u."FirstName", u."LastName", u."Email", u."Phone", u."Role", u."CreatedDate",
         c."Bio", c."Specialization", c."HourlyRate", c."Currency",
-        c."Experience", c."Rating", c."ReviewCount", c."IsVerified", c."IsAvailable",
+        c."Experience", c."Rating", c."ReviewCount", c."IsVerified",
         c."ContactInfo", c."Permission",
         ac."Phone" AS "ac_Phone", ac."Relationship", ac."Goal", ac."Concerns"
       FROM "USER" u
@@ -178,11 +177,11 @@ export class PgUserRepository implements IUserRepository {
       SELECT
         u."UserID", u."FirstName", u."LastName", u."Email", u."Phone", u."Role", u."CreatedDate",
         c."Bio", c."Specialization", c."HourlyRate", c."Currency",
-        c."Experience", c."Rating", c."ReviewCount", c."IsVerified", c."IsAvailable",
+        c."Experience", c."Rating", c."ReviewCount", c."IsVerified",
         c."ContactInfo", c."Permission"
       FROM "CARETAKER" c
       JOIN "USER" u ON u."UserID" = c."UserID"
-      WHERE c."IsAvailable" = true
+      WHERE 1 = 1
         ${filter.specialization ? sql`AND c."Specialization" ILIKE ${'%' + filter.specialization + '%'}` : sql``}
         ${filter.minRating !== undefined ? sql`AND c."Rating" >= ${filter.minRating}` : sql``}
         ${filter.minExperience !== undefined ? sql`AND c."Experience" >= ${filter.minExperience}` : sql``}
@@ -237,13 +236,13 @@ export class PgUserRepository implements IUserRepository {
     await sql`
       INSERT INTO "CARETAKER" (
         "UserID", "Bio", "Specialization", "HourlyRate", "Currency",
-        "Experience", "Rating", "ReviewCount", "IsVerified", "IsAvailable",
+        "Experience", "Rating", "ReviewCount", "IsVerified",
         "ContactInfo", "Permission"
       ) VALUES (
         ${idStr},
         ${data.bio ?? ''}, ${data.specialization ?? ''}, ${data.hourlyRate ?? 0}, ${data.currency ?? 'THB'},
         ${data.experience ?? 0}, ${data.rating ?? 0}, ${data.reviewCount ?? 0}, ${data.isVerified ?? false},
-        ${data.isAvailable ?? true}, ${data.contactInfo ?? ''}, ${data.permission ?? ''}
+        ${data.contactInfo ?? ''}, ${data.permission ?? ''}
       )
       ON CONFLICT ("UserID") DO UPDATE SET
         ${data.bio !== undefined ? sql`"Bio" = ${data.bio},` : sql``}
@@ -254,7 +253,6 @@ export class PgUserRepository implements IUserRepository {
         ${data.rating !== undefined ? sql`"Rating" = ${data.rating},` : sql``}
         ${data.reviewCount !== undefined ? sql`"ReviewCount" = ${data.reviewCount},` : sql``}
         ${data.isVerified !== undefined ? sql`"IsVerified" = ${data.isVerified},` : sql``}
-        ${data.isAvailable !== undefined ? sql`"IsAvailable" = ${data.isAvailable},` : sql``}
         ${data.contactInfo !== undefined ? sql`"ContactInfo" = ${data.contactInfo},` : sql``}
         ${data.permission !== undefined ? sql`"Permission" = ${data.permission},` : sql``}
         "UserID" = "CARETAKER"."UserID"
@@ -300,7 +298,6 @@ export class PgUserRepository implements IUserRepository {
         rating: Number(row.Rating) || 0,
         reviewCount: Number(row.ReviewCount) || 0,
         isVerified: row.IsVerified ?? false,
-        isAvailable: row.IsAvailable ?? true,
         contactInfo: row.ContactInfo ?? '',
         permission: row.Permission ?? '',
       })

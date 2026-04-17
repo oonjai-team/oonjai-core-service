@@ -170,7 +170,6 @@ describe("Feature 2 — Caretaker Selection / Search", () => {
       rating: 4.5,
       reviewCount: 0,
       isVerified: true,
-      isAvailable: true,
       contactInfo: "0800000000",
       permission: "all",
     })

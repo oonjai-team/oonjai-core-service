@@ -7,9 +7,14 @@ export class Activity {
   private title: string
   private category: string
   private tags: string[]
-  private host: string
-  private hostAvatar: string
-  private hostDescription: string
+  private pocId?: string
+  private hostFirstName?: string
+  private hostLastName?: string
+  private hostPhoneNumber?: string
+  private hostAvatarValue?: string
+  private hostDescriptionValue?: string
+  private providerId?: string
+  private providerName?: string
   private startDate: string
   private endDate: string
   private location: string
@@ -32,9 +37,14 @@ export class Activity {
     this.title = dto.title
     this.category = dto.category
     this.tags = dto.tags
-    this.host = dto.host
-    this.hostAvatar = dto.hostAvatar
-    this.hostDescription = dto.hostDescription
+    this.pocId = dto.pocId
+    this.hostFirstName = dto.hostFirstName
+    this.hostLastName = dto.hostLastName
+    this.hostPhoneNumber = dto.hostPhoneNumber
+    this.hostAvatarValue = dto.hostAvatar || undefined
+    this.hostDescriptionValue = dto.hostDescription || undefined
+    this.providerId = dto.providerId
+    this.providerName = dto.providerName
     this.startDate = dto.startDate
     this.endDate = dto.endDate
     this.location = dto.location
@@ -62,6 +72,10 @@ export class Activity {
 
   public getEndDate(): string {
     return this.endDate
+  }
+
+  public getPocId(): string | undefined {
+    return this.pocId
   }
 
   public addParticipants(count: number): void {
@@ -101,14 +115,21 @@ export class Activity {
   }
 
   public toDTO(): ActivityDTO {
+    const fullName = [this.hostFirstName, this.hostLastName].filter(Boolean).join(" ")
     return {
       id: this.id?.toString(),
       title: this.title,
       category: this.category,
       tags: this.tags,
-      host: this.host,
-      hostAvatar: this.hostAvatar,
-      hostDescription: this.hostDescription,
+      pocId: this.pocId,
+      hostFirstName: this.hostFirstName,
+      hostLastName: this.hostLastName,
+      hostPhoneNumber: this.hostPhoneNumber,
+      providerId: this.providerId,
+      providerName: this.providerName,
+      host: fullName,
+      hostAvatar: this.hostAvatarValue ?? "",
+      hostDescription: this.hostDescriptionValue ?? "",
       startDate: this.startDate,
       endDate: this.endDate,
       displayDate: this.formatDisplayDate(),
