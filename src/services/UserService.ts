@@ -1,19 +1,22 @@
 import type {IUserRepository} from "@repo/IUserRepository"
+import type {IAvailabilityRepository} from "@repo/IAvailabilityRepository"
 import {TimestampHelper} from "@type/timestamp"
 import {User} from "@entity/User"
 import {Caretaker} from "@entity/Caretaker"
 import {RoleEnum} from "@type/user"
 import type {UUID} from "@type/uuid"
 import type {IService} from "@serv/IService"
-import type {CareTakerUserAttributes, PartialUserDTO, UserDTO} from "@entity/UserDTO"
-import type {CaretakerFilter} from "@type/caretaker"
+import type {CareTakerUserAttributes, PartialUserDTO} from "@entity/UserDTO"
+import type {AvailabilitySlot, CaretakerFilter} from "@type/caretaker"
 
 export class UserService implements IService {
 
   private userRepo: IUserRepository
+  private availabilityRepo: IAvailabilityRepository
 
-  constructor(userRepo: IUserRepository) {
+  constructor(userRepo: IUserRepository, availabilityRepo: IAvailabilityRepository) {
     this.userRepo = userRepo
+    this.availabilityRepo = availabilityRepo
   }
 
   public getServiceId(): string {
@@ -60,8 +63,20 @@ export class UserService implements IService {
     return available
   }
 
-  public async updateUser(id: UUID, data: PartialUserDTO) {
-    const copy = {...data}
+  public async getCaretakerAvailability(caretakerId: UUID): Promise<AvailabilitySlot[]> {
+    return this.availabilityRepo.listByCaretaker(caretakerId)
+  }
+
+  public async replaceCaretakerAvailability(caretakerId: UUID, slots: AvailabilitySlot[]): Promise<void> {
+    return this.availabilityRepo.replaceForCaretaker(caretakerId, slots)
+  }
+
+  public async updateUser(id: UUID, data: PartialUserDTO & {availability?: AvailabilitySlot[]}) {
+    const copy: PartialUserDTO & {availability?: AvailabilitySlot[]} = {...data}
+    if (copy.availability !== undefined) {
+      await this.availabilityRepo.replaceForCaretaker(id, copy.availability)
+      delete copy.availability
+    }
     if (copy.caretaker) {
       await this.userRepo.updateAttrProfile(id, copy.caretaker)
       delete copy.caretaker

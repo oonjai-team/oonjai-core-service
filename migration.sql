@@ -93,16 +93,31 @@ CREATE TABLE "CARETAKER" (
   "IsVerified"     BOOLEAN DEFAULT FALSE,
   "IsAvailable"    BOOLEAN DEFAULT TRUE,
   "ContactInfo"    TEXT,
-  "Permission"     VARCHAR(50),
-  -- Weekly schedule: { "0": [9,10,11], "1": [8,9,10,11,12,13] }
-  "Availability"   JSONB,
-  -- Booked slots: [{ "date": "2026-04-15", "hour": 9, "bookingId": "BK-XXX" }]
-  "BookedSlots"    JSONB DEFAULT '[]'
+  "Permission"     VARCHAR(50)
 );
 
 CREATE INDEX idx_caretaker_available   ON "CARETAKER" ("IsAvailable") WHERE "IsAvailable" = TRUE;
 CREATE INDEX idx_caretaker_rating      ON "CARETAKER" ("Rating" DESC);
 CREATE INDEX idx_caretaker_hourly_rate ON "CARETAKER" ("HourlyRate");
+
+-- ============================================================
+-- 4b. Caretaker_Availability
+-- Caretakers declare N concrete availability windows (ER: CARETAKER 1--N declares).
+-- Expected to be refreshed weekly by the caretaker; rows can be flushed
+-- on a weekly cadence without further state to reconcile.
+-- ============================================================
+CREATE TABLE "Caretaker_Availability" (
+  "Availability_ID" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "CaretakerID"     UUID NOT NULL REFERENCES "CARETAKER"("UserID") ON DELETE CASCADE,
+  "StartDateTime"   TIMESTAMPTZ NOT NULL,
+  "EndDateTime"     TIMESTAMPTZ NOT NULL,
+  "isActive"        BOOLEAN NOT NULL DEFAULT TRUE,
+  "CreatedDate"     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK ("EndDateTime" > "StartDateTime")
+);
+
+CREATE INDEX idx_caretaker_availability_caretaker ON "Caretaker_Availability" ("CaretakerID");
+CREATE INDEX idx_caretaker_availability_range     ON "Caretaker_Availability" ("CaretakerID", "StartDateTime", "EndDateTime") WHERE "isActive" = TRUE;
 
 -- ============================================================
 -- 5. SENIOR_PROFILE

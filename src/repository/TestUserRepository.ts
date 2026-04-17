@@ -6,8 +6,8 @@ import {AdultChild} from "@entity/AdultChild"
 import {UUID} from "@type/uuid"
 import {Timestamp} from "@type/timestamp"
 import {RoleEnum} from "@type/user"
-import {type CaretakerFilter, enumerateHourSlots} from "@type/caretaker"
-import type {AdultChildAttributes, CareTakerUserAttributes, PartialUserDTO, UserDTO} from "@entity/UserDTO"
+import type {CaretakerFilter} from "@type/caretaker"
+import type {AdultChildAttributes, CareTakerUserAttributes, UserDTO} from "@entity/UserDTO"
 
 
 export class TestUserRepository implements IUserRepository {
@@ -84,34 +84,26 @@ export class TestUserRepository implements IUserRepository {
       results = results.filter(c => c.hourlyRate <= filters.maxHourlyRate!)
     }
 
-    // Stage 1: Weekly availability schedule check
-    // Caretaker sets this — represents their recurring weekly hours
+    // Availability check: every hour in [start, end) must have a matching
+    // active 1-hour slot in the caretaker's collection.
     if (filters.startDate && filters.endDate) {
-      const requiredSlots = enumerateHourSlots(filters.startDate, filters.endDate)
-      if (requiredSlots.length > 0) {
-        results = results.filter(c => {
-          if (!c.availability) return true // no schedule set → use isAvailable flag only
-          return requiredSlots.every(slot =>
-            c.availability![String(slot.day)]?.includes(slot.hour)
-          )
-        })
-      }
-
-      // Stage 2: Booked slots check
-      // bookedSlots is populated when bookings are created, released when cancelled
-      // Each slot is { date: "2026-04-15", hour: 9, bookingId: "BK-xxx" }
+      const reqStart = filters.startDate.getTime()
+      const reqEnd = filters.endDate.getTime()
+      const requiredHours = Math.max(1, Math.round((reqEnd - reqStart) / (60 * 60 * 1000)))
       results = results.filter(c => {
-        if (!c.bookedSlots || c.bookedSlots.length === 0) return true
-        // Build set of required date+hour combos
-        const cursor = new Date(filters.startDate!.getTime())
-        while (cursor.getTime() < filters.endDate!.getTime()) {
-          const dateStr = cursor.toISOString().split("T")[0]
-          const hour = cursor.getHours()
-          const isBooked = c.bookedSlots!.some(s => s.date === dateStr && s.hour === hour)
-          if (isBooked) return false
-          cursor.setTime(cursor.getTime() + 60 * 60 * 1000)
+        try {
+          const stored = this.db.get("availability", new UUID(c.id))
+          const slots = (stored?.slots ?? []) as {startDateTime: string; endDateTime: string; isActive: boolean}[]
+          if (slots.length === 0) return true
+          const activeCount = slots.filter(s =>
+            s.isActive &&
+            new Date(s.startDateTime).getTime() >= reqStart &&
+            new Date(s.endDateTime).getTime() <= reqEnd
+          ).length
+          return activeCount === requiredHours
+        } catch (_) {
+          return true
         }
-        return true
       })
     }
 

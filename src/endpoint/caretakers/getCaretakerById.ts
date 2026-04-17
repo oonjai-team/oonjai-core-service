@@ -11,11 +11,13 @@ handler: async (ctx, [service], session) => {
       return unauthorized("User must be logged in")
     }
 
-    const caretaker = await service.getUserById(new UUID(ctx.params?.caretakerId as string))
+    const caretakerId = new UUID(ctx.params?.caretakerId as string)
+    const caretaker = await service.getUserById(caretakerId)
     if (!caretaker) {
       return notFound("caretaker not found")
     }
 
-    return ok(caretaker.toDTO())
+    const availability = await service.getCaretakerAvailability(caretakerId)
+    return ok({...caretaker.toDTO(), availability})
   },
 }

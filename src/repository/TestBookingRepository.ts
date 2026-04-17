@@ -69,6 +69,55 @@ export class TestBookingRepository implements IBookingRepository {
     return bookingId
   }
 
+  public async reserveAndInsert(booking: Booking): Promise<string> {
+    const dto = booking.toDTO()
+    if (!dto.caretakerId) {
+      throw new Error("reserveAndInsert requires a caretakerId")
+    }
+    const caretakerId = new UUID(dto.caretakerId)
+    const reqStart = new Date(dto.startDate).getTime()
+    const reqEnd = new Date(dto.endDate).getTime()
+    const requiredHours = Math.max(1, Math.round((reqEnd - reqStart) / (60 * 60 * 1000)))
+
+    // Every hour in [start, end) must have a matching active 1-hour slot
+    let slots: {startDateTime: string; endDateTime: string; isActive: boolean}[] = []
+    try {
+      const stored = this.db.get("availability", caretakerId)
+      slots = (stored?.slots ?? []) as typeof slots
+    } catch (_) {
+      // no availability record
+    }
+    const activeContained = slots.filter(s =>
+      s.isActive &&
+      new Date(s.startDateTime).getTime() >= reqStart &&
+      new Date(s.endDateTime).getTime() <= reqEnd
+    ).length
+    if (activeContained !== requiredHours) {
+      throw new Error("NOT_AVAILABLE: caretaker has no active availability covering this range")
+    }
+
+    // Re-check bookings
+    const conflicts = this.db.getAll("booking")
+      .filter(b => b.caretakerId === dto.caretakerId && b.status !== "cancelled")
+      .some(b => new Date(b.startDate).getTime() < reqEnd && new Date(b.endDate).getTime() > reqStart)
+    if (conflicts) {
+      throw new Error("CONFLICT: caretaker is not available for the requested time slot")
+    }
+
+    const bookingId = await this.insert(booking)
+
+    // Flip each contained hourly slot to inactive
+    const updated = slots.map(s => {
+      const contained =
+        new Date(s.startDateTime).getTime() >= reqStart &&
+        new Date(s.endDateTime).getTime() <= reqEnd
+      return contained ? {...s, isActive: false} : s
+    })
+    this.db.set("availability", caretakerId, {slots: updated})
+
+    return bookingId
+  }
+
   public async save(booking: Booking): Promise<boolean> {
     if (booking.isNew()) {
       throw new Error("cannot save new booking without id")

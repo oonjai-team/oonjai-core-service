@@ -5,7 +5,7 @@ import {AdultChild} from "@entity/AdultChild"
 import {UUID} from "@type/uuid"
 import {Timestamp} from "@type/timestamp"
 import {RoleEnum} from "@type/user"
-import {type CaretakerFilter, enumerateHourSlots} from "@type/caretaker"
+import type {CaretakerFilter} from "@type/caretaker"
 import type {AdultChildAttributes, CareTakerUserAttributes, UserDTO} from "@entity/UserDTO"
 import sql from "../lib/postgres"
 
@@ -30,13 +30,11 @@ export class PgUserRepository implements IUserRepository {
             INSERT INTO "CARETAKER" (
               "UserID", "Bio", "Specialization", "HourlyRate", "Currency",
               "Experience", "Rating", "ReviewCount", "IsVerified", "IsAvailable",
-              "ContactInfo", "Permission", "Availability", "BookedSlots"
+              "ContactInfo", "Permission"
             ) VALUES (
               ${userId}, ${ct.bio}, ${ct.specialization}, ${ct.hourlyRate}, ${ct.currency},
               ${ct.experience}, ${ct.rating}, ${ct.reviewCount}, ${ct.isVerified}, ${ct.isAvailable},
-              ${ct.contactInfo}, ${ct.permission},
-              ${ct.availability ? sql.json(ct.availability) : null},
-              ${ct.bookedSlots ? sql.json(ct.bookedSlots as any) : sql.json([])}
+              ${ct.contactInfo}, ${ct.permission}
             )
           `
         }
@@ -80,13 +78,11 @@ export class PgUserRepository implements IUserRepository {
           INSERT INTO "CARETAKER" (
             "UserID", "Bio", "Specialization", "HourlyRate", "Currency",
             "Experience", "Rating", "ReviewCount", "IsVerified", "IsAvailable",
-            "ContactInfo", "Permission", "Availability", "BookedSlots"
+            "ContactInfo", "Permission"
           ) VALUES (
             ${uid.toString()}, ${ct.bio}, ${ct.specialization}, ${ct.hourlyRate}, ${ct.currency},
             ${ct.experience}, ${ct.rating}, ${ct.reviewCount}, ${ct.isVerified}, ${ct.isAvailable},
-            ${ct.contactInfo}, ${ct.permission},
-            ${ct.availability ? sql.json(ct.availability) : null},
-            ${ct.bookedSlots ? sql.json(ct.bookedSlots as any) : sql.json([])}
+            ${ct.contactInfo}, ${ct.permission}
           )
           ON CONFLICT ("UserID") DO UPDATE SET
             "Bio" = EXCLUDED."Bio",
@@ -99,9 +95,7 @@ export class PgUserRepository implements IUserRepository {
             "IsVerified" = EXCLUDED."IsVerified",
             "IsAvailable" = EXCLUDED."IsAvailable",
             "ContactInfo" = EXCLUDED."ContactInfo",
-            "Permission" = EXCLUDED."Permission",
-            "Availability" = EXCLUDED."Availability",
-            "BookedSlots" = EXCLUDED."BookedSlots"
+            "Permission" = EXCLUDED."Permission"
         `
       }
 
@@ -140,7 +134,7 @@ export class PgUserRepository implements IUserRepository {
         u."UserID", u."FirstName", u."LastName", u."Email", u."Phone", u."Role", u."CreatedDate",
         c."Bio", c."Specialization", c."HourlyRate", c."Currency",
         c."Experience", c."Rating", c."ReviewCount", c."IsVerified", c."IsAvailable",
-        c."ContactInfo", c."Permission", c."Availability", c."BookedSlots",
+        c."ContactInfo", c."Permission",
         ac."Phone" AS "ac_Phone", ac."Relationship", ac."Goal", ac."Concerns"
       FROM "USER" u
       LEFT JOIN "CARETAKER" c ON c."UserID" = u."UserID"
@@ -149,7 +143,7 @@ export class PgUserRepository implements IUserRepository {
     `
 
     if (rows.length === 0) return undefined
-    return this.reconstruct(rows[0])
+    return this.reconstruct(rows[0]!)
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
@@ -158,7 +152,7 @@ export class PgUserRepository implements IUserRepository {
         u."UserID", u."FirstName", u."LastName", u."Email", u."Phone", u."Role", u."CreatedDate",
         c."Bio", c."Specialization", c."HourlyRate", c."Currency",
         c."Experience", c."Rating", c."ReviewCount", c."IsVerified", c."IsAvailable",
-        c."ContactInfo", c."Permission", c."Availability", c."BookedSlots",
+        c."ContactInfo", c."Permission",
         ac."Phone" AS "ac_Phone", ac."Relationship", ac."Goal", ac."Concerns"
       FROM "USER" u
       LEFT JOIN "CARETAKER" c ON c."UserID" = u."UserID"
@@ -167,22 +161,25 @@ export class PgUserRepository implements IUserRepository {
     `
 
     if (rows.length === 0) return undefined
-    return this.reconstruct(rows[0])
+    return this.reconstruct(rows[0]!)
   }
 
   async findAvailableCaretaker(filter: CaretakerFilter): Promise<User[]> {
-    const conditions: string[] = []
     const startISO = filter.startDate.toISOString()
     const endISO = filter.endDate.toISOString()
+    // Each Caretaker_Availability row is exactly 1 hour. A caretaker can serve
+    // [start, end) iff every hour in the range has a matching active row.
+    const requiredHours = Math.max(
+      1,
+      Math.round((filter.endDate.getTime() - filter.startDate.getTime()) / (60 * 60 * 1000)),
+    )
 
-    // Build dynamic WHERE fragments
-    // We use sql.unsafe for the dynamic parts but parameterize values
-    let query = sql`
+    const rows = await sql`
       SELECT
         u."UserID", u."FirstName", u."LastName", u."Email", u."Phone", u."Role", u."CreatedDate",
         c."Bio", c."Specialization", c."HourlyRate", c."Currency",
         c."Experience", c."Rating", c."ReviewCount", c."IsVerified", c."IsAvailable",
-        c."ContactInfo", c."Permission", c."Availability", c."BookedSlots"
+        c."ContactInfo", c."Permission"
       FROM "CARETAKER" c
       JOIN "USER" u ON u."UserID" = c."UserID"
       WHERE c."IsAvailable" = true
@@ -190,6 +187,13 @@ export class PgUserRepository implements IUserRepository {
         ${filter.minRating !== undefined ? sql`AND c."Rating" >= ${filter.minRating}` : sql``}
         ${filter.minExperience !== undefined ? sql`AND c."Experience" >= ${filter.minExperience}` : sql``}
         ${filter.maxHourlyRate !== undefined ? sql`AND c."HourlyRate" <= ${filter.maxHourlyRate}` : sql``}
+        AND (
+          SELECT COUNT(*)::int FROM "Caretaker_Availability" a
+          WHERE a."CaretakerID" = c."UserID"
+            AND a."isActive" = TRUE
+            AND a."StartDateTime" >= ${startISO}
+            AND a."EndDateTime"   <= ${endISO}
+        ) = ${requiredHours}
         AND NOT EXISTS (
           SELECT 1 FROM "BOOKING"
           WHERE "CaretakerID" = c."UserID"
@@ -206,43 +210,7 @@ export class PgUserRepository implements IUserRepository {
       }
     `
 
-    const rows = await query
-
-    // App-layer filtering for weekly availability schedule & booked slots
-    let results = rows.map((row: any) => ({
-      row,
-      availability: row.Availability as Record<string, number[]> | undefined,
-      bookedSlots: row.BookedSlots as { date: string; hour: number; bookingId: string }[] | undefined,
-    }))
-
-    if (filter.startDate && filter.endDate) {
-      const requiredSlots = enumerateHourSlots(filter.startDate, filter.endDate)
-
-      if (requiredSlots.length > 0) {
-        results = results.filter(({availability}) => {
-          if (!availability) return true // no schedule set, rely on isAvailable flag
-          return requiredSlots.every(slot =>
-            availability[String(slot.day)]?.includes(slot.hour)
-          )
-        })
-      }
-
-      // Booked slots check
-      results = results.filter(({bookedSlots}) => {
-        if (!bookedSlots || bookedSlots.length === 0) return true
-        const cursor = new Date(filter.startDate!.getTime())
-        while (cursor.getTime() < filter.endDate!.getTime()) {
-          const dateStr = cursor.toISOString().split("T")[0]
-          const hour = cursor.getHours()
-          const isBooked = bookedSlots.some(s => s.date === dateStr && s.hour === hour)
-          if (isBooked) return false
-          cursor.setTime(cursor.getTime() + 60 * 60 * 1000)
-        }
-        return true
-      })
-    }
-
-    return results.map(({row}) => this.reconstruct(row))
+    return rows.map((row: any) => this.reconstruct(row))
   }
 
   async updateUser(id: UUID, data: Partial<Omit<UserDTO, "caretaker" | "adultChild">>): Promise<boolean> {
@@ -270,14 +238,12 @@ export class PgUserRepository implements IUserRepository {
       INSERT INTO "CARETAKER" (
         "UserID", "Bio", "Specialization", "HourlyRate", "Currency",
         "Experience", "Rating", "ReviewCount", "IsVerified", "IsAvailable",
-        "ContactInfo", "Permission", "Availability", "BookedSlots"
+        "ContactInfo", "Permission"
       ) VALUES (
         ${idStr},
         ${data.bio ?? ''}, ${data.specialization ?? ''}, ${data.hourlyRate ?? 0}, ${data.currency ?? 'THB'},
         ${data.experience ?? 0}, ${data.rating ?? 0}, ${data.reviewCount ?? 0}, ${data.isVerified ?? false},
-        ${data.isAvailable ?? true}, ${data.contactInfo ?? ''}, ${data.permission ?? ''},
-        ${data.availability ? sql.json(data.availability) : null},
-        ${data.bookedSlots ? sql.json(data.bookedSlots as any) : sql.json([])}
+        ${data.isAvailable ?? true}, ${data.contactInfo ?? ''}, ${data.permission ?? ''}
       )
       ON CONFLICT ("UserID") DO UPDATE SET
         ${data.bio !== undefined ? sql`"Bio" = ${data.bio},` : sql``}
@@ -291,8 +257,6 @@ export class PgUserRepository implements IUserRepository {
         ${data.isAvailable !== undefined ? sql`"IsAvailable" = ${data.isAvailable},` : sql``}
         ${data.contactInfo !== undefined ? sql`"ContactInfo" = ${data.contactInfo},` : sql``}
         ${data.permission !== undefined ? sql`"Permission" = ${data.permission},` : sql``}
-        ${data.availability !== undefined ? sql`"Availability" = ${sql.json(data.availability)},` : sql``}
-        ${data.bookedSlots !== undefined ? sql`"BookedSlots" = ${sql.json(data.bookedSlots as any)},` : sql``}
         "UserID" = "CARETAKER"."UserID"
     `
 
@@ -339,8 +303,6 @@ export class PgUserRepository implements IUserRepository {
         isAvailable: row.IsAvailable ?? true,
         contactInfo: row.ContactInfo ?? '',
         permission: row.Permission ?? '',
-        availability: row.Availability,
-        bookedSlots: row.BookedSlots ?? [],
       })
     }
 

@@ -1,4 +1,5 @@
 import { PgUserRepository } from "@repo/PgUserRepository";
+import { PgAvailabilityRepository } from "@repo/PgAvailabilityRepository";
 import { PgSeniorRepository } from "@repo/PgSeniorRepository";
 import { UserService } from "@serv/UserService";
 import { SeniorManagementService } from "@serv/SeniorManagementService";
@@ -40,6 +41,9 @@ import { getActivities } from "@endpoint/activities/getActivities";
 import { getActivityById } from "@endpoint/activities/getActivityById";
 import { getBookedSeniors } from "@endpoint/activities/getBookedSeniors";
 import { getSeniorConflicts } from "@endpoint/activities/getSeniorConflicts";
+import { getActivityPrecautions, makePrecautionCacheRepoService } from "@endpoint/activities/getActivityPrecautions";
+import { OllamaService } from "@serv/OllamaService";
+import { PgPrecautionCacheRepository } from "@repo/PgPrecautionCacheRepository";
 import { createActivityBooking } from "@endpoint/bookings/createActivityBooking";
 import { PgIncidentLogRepository } from "@repo/PgIncidentLogRepository";
 import { IncidentLogService } from "@serv/IncidentLogService";
@@ -70,6 +74,7 @@ import { getPendingVerifications } from "@endpoint/verifications/getPendingVerif
 import { updateVerification } from "@endpoint/verifications/updateVerification";
 // ── Infrastructure (Postgres) ────────────────────────────────────────────────
 const userRepo = new PgUserRepository();
+const availabilityRepo = new PgAvailabilityRepository();
 const seniorRepo = new PgSeniorRepository();
 const statusLogRepo = new PgStatusLogRepository();
 const bookingRepo = new PgBookingRepository();
@@ -80,13 +85,16 @@ const verificationRepo = new PgVerificationRepository();
 const oauthStateRepo = new MemoryOAuthStateRepository();
 // ── Services ──────────────────────────────────────────────────────────────────
 const jwtSessionService = new JWTSessionService(userRepo, process.env["JWT_SECRET"] ?? "change-me-in-production");
-const userService = new UserService(userRepo);
+const userService = new UserService(userRepo, availabilityRepo);
 const seniorManagementService = new SeniorManagementService(userRepo, seniorRepo);
-const bookingService = new BookingService(bookingRepo, userRepo);
+const bookingService = new BookingService(bookingRepo, userRepo, availabilityRepo);
 const paymentService = new PaymentService(paymentRepo, bookingRepo);
 const incidentLogService = new IncidentLogService(incidentLogRepo, bookingRepo);
 const verificationService = new VerificationService(verificationRepo, userRepo);
 const activityService = new ActivityService(activityRepo);
+const ollamaService = new OllamaService(process.env["OLLAMA_URL"] ?? "https://ollama.com", process.env["OLLAMA_MODEL"] ?? "gpt-oss:20b", process.env["OLLAMA_API_KEY"] ?? "");
+const precautionCacheRepo = new PgPrecautionCacheRepository();
+const precautionCacheSvc = makePrecautionCacheRepoService(precautionCacheRepo);
 const statusLogService = new StatusLogService(statusLogRepo);
 const authService = new AuthService(userService, jwtSessionService);
 const lineAuthService = new LineOauthService(process.env["LINE_CHANNEL_ID"] ?? "", process.env["LINE_CHANNEL_SECRET"] ?? "", oauthStateRepo);
@@ -124,7 +132,7 @@ registry
     .register(createStatusLog, [statusLogService])
     .register(getStatusLogs, [statusLogService])
     // Bookings
-    .register(getBookings, [bookingService, userService])
+    .register(getBookings, [bookingService, userService, activityService])
     .register(createBooking, [bookingService])
     .register(getSeniorServiceConflicts, [bookingService, seniorManagementService])
     .register(getBookingById, [bookingService])
@@ -150,6 +158,7 @@ registry
     .register(getActivityById, [activityService])
     .register(getBookedSeniors, [bookingService])
     .register(getSeniorConflicts, [bookingService, activityService, seniorManagementService])
+    .register(getActivityPrecautions, [activityService, seniorManagementService, ollamaService, precautionCacheSvc])
     // Activity Bookings
     .register(createActivityBooking, [bookingService, activityService])
     // Verifications

@@ -1,5 +1,6 @@
 import type {IBookingRepository} from "@repo/IBookingRepository"
 import type {IUserRepository} from "@repo/IUserRepository"
+import type {IAvailabilityRepository} from "@repo/IAvailabilityRepository"
 import type {IService} from "@serv/IService"
 import {Booking} from "@entity/Booking"
 import {Review} from "@entity/Review"
@@ -13,10 +14,12 @@ import {RoleEnum} from "@type/user"
 export class BookingService implements IService {
   private bookingRepo: IBookingRepository
   private userRepo: IUserRepository
+  private availabilityRepo: IAvailabilityRepository
 
-  constructor(bookingRepo: IBookingRepository, userRepo: IUserRepository) {
+  constructor(bookingRepo: IBookingRepository, userRepo: IUserRepository, availabilityRepo: IAvailabilityRepository) {
     this.bookingRepo = bookingRepo
     this.userRepo = userRepo
+    this.availabilityRepo = availabilityRepo
   }
 
   public getServiceId(): string {
@@ -43,27 +46,15 @@ export class BookingService implements IService {
       throw new Error("CARETAKER_NOT_FOUND: caretaker profile not found")
     }
 
-    // Check for time conflicts
-    const existing = await this.bookingRepo.findByCaretakerId(caretakerId)
-    const newStart = new Date(startDate).getTime()
-    const newEnd = new Date(endDate).getTime()
-    const hasConflict = existing.some(b => {
-      const dto = b.toDTO()
-      if (dto.status === BookingStatus.CANCELLED) return false
-      const existStart = new Date(dto.startDate).getTime()
-      const existEnd = new Date(dto.endDate).getTime()
-      return existStart < newEnd && existEnd > newStart
-    })
-    if (hasConflict) {
-      throw new Error("CONFLICT: caretaker is not available for the requested time slot")
-    }
-
-    // Check senior time conflicts
+    // Senior conflict check runs outside the booking transaction — it's against
+    // the same BOOKING table, so row-level commit ordering keeps it consistent.
     if (await this.hasSeniorTimeConflict(seniorId, startDate, endDate)) {
       throw new Error("SENIOR_CONFLICT: senior already has a booking during this time period")
     }
 
     const caretakerDTO = caretakerProfile.toDTO()
+    const newStart = new Date(startDate).getTime()
+    const newEnd = new Date(endDate).getTime()
     const durationHours = (newEnd - newStart) / (1000 * 60 * 60)
     // Round to 2 decimals to match the NUMERIC(12,2) column; otherwise the
     // in-memory value and the reloaded DB value diverge and strict-equality
@@ -86,11 +77,9 @@ export class BookingService implements IService {
       TimestampHelper.now()
     )
 
-    const id = await this.bookingRepo.insert(booking)
-
-    // Mark slots as booked on the caretaker
-    caretakerProfile.bookSlots(startDate, endDate, id)
-    await this.userRepo.updateAttrProfile(caretakerId, caretakerProfile.toDTO())
+    // Single transaction: lock covering availability slots, verify no booking
+    // conflict, insert BOOKING, flip slots to inactive. Any failure rolls back.
+    const id = await this.bookingRepo.reserveAndInsert(booking)
 
     return new Booking({...booking.toDTO(), id: id})
   }
@@ -184,17 +173,11 @@ export class BookingService implements IService {
     booking.cancel(requesterId)
     await this.bookingRepo.save(booking)
 
-    // Release booked slots on the caretaker
     const dto = booking.toDTO()
     if (dto.caretakerId) {
-      const caretakerUser = await this.userRepo.findById(new UUID(dto.caretakerId))
-      if (caretakerUser) {
-        const profile = caretakerUser.getCaretaker()
-        if (profile) {
-          profile.releaseSlots(bookingId)
-          await this.userRepo.updateAttrProfile(new UUID(dto.caretakerId), profile.toDTO())
-        }
-      }
+      await this.availabilityRepo.setActiveInRange(
+        new UUID(dto.caretakerId), dto.startDate, dto.endDate, true,
+      )
     }
   }
 

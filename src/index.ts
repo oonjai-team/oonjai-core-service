@@ -1,4 +1,5 @@
 import {PgUserRepository} from "@repo/PgUserRepository"
+import {PgAvailabilityRepository} from "@repo/PgAvailabilityRepository"
 import {PgSeniorRepository} from "@repo/PgSeniorRepository"
 import {UserService} from "@serv/UserService"
 import {SeniorManagementService} from "@serv/SeniorManagementService"
@@ -80,6 +81,7 @@ import {updateVerification} from "@endpoint/verifications/updateVerification"
 
 // ── Infrastructure (Postgres) ────────────────────────────────────────────────
 const userRepo = new PgUserRepository()
+const availabilityRepo = new PgAvailabilityRepository()
 const seniorRepo = new PgSeniorRepository()
 const statusLogRepo = new PgStatusLogRepository()
 const bookingRepo = new PgBookingRepository()
@@ -91,9 +93,9 @@ const oauthStateRepo = new MemoryOAuthStateRepository()
 
 // ── Services ──────────────────────────────────────────────────────────────────
 const jwtSessionService = new JWTSessionService(userRepo, process.env["JWT_SECRET"] ?? "change-me-in-production")
-const userService = new UserService(userRepo)
+const userService = new UserService(userRepo, availabilityRepo)
 const seniorManagementService = new SeniorManagementService(userRepo, seniorRepo)
-const bookingService = new BookingService(bookingRepo, userRepo)
+const bookingService = new BookingService(bookingRepo, userRepo, availabilityRepo)
 const paymentService = new PaymentService(paymentRepo, bookingRepo)
 const incidentLogService = new IncidentLogService(incidentLogRepo, bookingRepo)
 const verificationService = new VerificationService(verificationRepo, userRepo)

@@ -1,5 +1,6 @@
 import {TestUserRepository} from "@repo/TestUserRepository"
 import {TestBookingRepository} from "@repo/TestBookingRepository"
+import {TestAvailabilityRepository} from "@repo/TestAvailabilityRepository"
 import {UserService} from "@serv/UserService"
 import {BookingService} from "@serv/BookingService"
 import {AuthService} from "@serv/AuthService"
@@ -16,6 +17,7 @@ export interface TestEnv {
   db: MemoryTestDatabase
   userRepo: TestUserRepository
   bookingRepo: TestBookingRepository
+  availabilityRepo: TestAvailabilityRepository
   userService: UserService
   bookingService: BookingService
   authService: AuthService
@@ -26,11 +28,12 @@ export function makeEnv(): TestEnv {
   const db = new MemoryTestDatabase()
   const userRepo = new TestUserRepository(db)
   const bookingRepo = new TestBookingRepository(db)
-  const userService = new UserService(userRepo)
-  const bookingService = new BookingService(bookingRepo, userRepo)
+  const availabilityRepo = new TestAvailabilityRepository(db)
+  const userService = new UserService(userRepo, availabilityRepo)
+  const bookingService = new BookingService(bookingRepo, userRepo, availabilityRepo)
   const sessionService = new JWTSessionService(userRepo, "test-secret")
   const authService = new AuthService(userService, sessionService)
-  return {db, userRepo, bookingRepo, userService, bookingService, authService, sessionService}
+  return {db, userRepo, bookingRepo, availabilityRepo, userService, bookingService, authService, sessionService}
 }
 
 export function emptyCtx(overrides: Partial<HttpContext> = {}): HttpContext {

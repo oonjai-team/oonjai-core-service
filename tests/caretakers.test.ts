@@ -11,6 +11,7 @@ import {getAvailableCaretakers} from "@endpoint/caretakers/getAvailableCaretaker
 import {Session} from "@entity/Session"
 import {RoleEnum} from "@type/user"
 import {TestUserRepository} from "@repo/TestUserRepository"
+import {TestAvailabilityRepository} from "@repo/TestAvailabilityRepository"
 import {UserService} from "@serv/UserService"
 import {JWTSessionService} from "@serv/JWTSessionService"
 import {AuthService} from "@serv/AuthService"
@@ -153,7 +154,8 @@ describe("Feature 2 — Caretaker Selection / Search", () => {
   test("TC22 — authorised request with one matching caretaker returns 200 with that caretaker", async () => {
     const db = new MemoryTestDatabase()
     const userRepo = new TestUserRepository(db)
-    const userService = new UserService(userRepo)
+    const availabilityRepo = new TestAvailabilityRepository(db)
+    const userService = new UserService(userRepo, availabilityRepo)
     const sessionService = new JWTSessionService(userRepo, "test-secret")
     const authService = new AuthService(userService, sessionService)
     void authService

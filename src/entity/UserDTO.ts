@@ -38,12 +38,4 @@ export interface CareTakerUserAttributes {
   isAvailable: boolean
   contactInfo: string
   permission: string
-  availability?: Record<string, number[]>
-  bookedSlots?: BookedSlot[]
-}
-
-export interface BookedSlot {
-  date: string       // ISO date e.g. "2026-04-15"
-  hour: number       // 0-23
-  bookingId: string
 }

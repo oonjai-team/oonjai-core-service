@@ -18,72 +18,122 @@ VALUES
 ON CONFLICT ("UserID") DO NOTHING;
 
 -- ── Caretaker profiles ──────────────────────────────────────────────────────
-INSERT INTO "CARETAKER" ("UserID", "Bio", "Specialization", "HourlyRate", "Currency", "Experience", "Rating", "ReviewCount", "IsVerified", "IsAvailable", "ContactInfo", "Permission", "Availability", "BookedSlots")
+INSERT INTO "CARETAKER" ("UserID", "Bio", "Specialization", "HourlyRate", "Currency", "Experience", "Rating", "ReviewCount", "IsVerified", "IsAvailable", "ContactInfo", "Permission")
 VALUES
   -- ct-001: Somying
   ('a0000000-0000-0000-0000-000000000001',
    'Compassionate caregiver with extensive experience in elderly home care and post-surgery recovery support.',
    'Home Care, Post-Surgery, Meal Prep',
-   85, 'THB', 6, 4.9, 42, TRUE, TRUE, 'somying@oonjai.com', 'full',
-   '{"1":[8,9,10,11,12,13,14,15],"2":[8,9,10,11,12,13,14,15],"3":[8,9,10,11,12,13,14,15],"4":[8,9,10,11,12,13,14,15],"5":[8,9,10,11,12,13,14,15]}',
-   '[]'),
+   85, 'THB', 6, 4.9, 42, TRUE, TRUE, 'somying@oonjai.com', 'full'),
 
   -- ct-002: Nattapong
   ('a0000000-0000-0000-0000-000000000002',
    'Certified physical therapist specializing in mobility rehabilitation and gentle exercise programs for seniors.',
    'Physical Therapy, Mobility, Dementia Care',
-   120, 'THB', 9, 4.8, 65, TRUE, TRUE, 'nattapong@oonjai.com', 'full',
-   '{"1":[10,11,12,13,14,15,16,17],"2":[10,11,12,13,14,15,16,17],"3":[10,11,12,13,14,15,16,17],"4":[10,11,12,13,14,15,16,17],"5":[10,11,12,13,14,15,16,17],"6":[10,11,12,13,14,15,16,17]}',
-   '[{"date":"2026-04-14","hour":12,"bookingId":"BK-6B7C1CB7"},{"date":"2026-04-14","hour":13,"bookingId":"BK-6B7C1CB7"}]'),
+   120, 'THB', 9, 4.8, 65, TRUE, TRUE, 'nattapong@oonjai.com', 'full'),
 
   -- ct-003: Pranee
   ('a0000000-0000-0000-0000-000000000003',
    'Warm and patient caregiver focused on companionship, outings, and keeping seniors socially active.',
    'Home Care, Meal Prep',
-   70, 'THB', 3, 4.7, 18, TRUE, TRUE, 'pranee@oonjai.com', 'full',
-   '{"1":[9,10,11,12,13,14,15,16],"2":[9,10,11,12,13,14,15,16],"3":[9,10,11,12,13,14,15,16],"4":[9,10,11,12,13,14,15,16],"5":[9,10,11,12,13,14,15,16]}',
-   '[]'),
+   70, 'THB', 3, 4.7, 18, TRUE, TRUE, 'pranee@oonjai.com', 'full'),
 
   -- ct-004: Kittisak
   ('a0000000-0000-0000-0000-000000000004',
    'Former hospital nurse with deep expertise in medical escort, medication management, and chronic disease monitoring.',
    'Post-Surgery, Physical Therapy, Dementia Care',
-   150, 'THB', 12, 5.0, 89, TRUE, TRUE, 'kittisak@oonjai.com', 'full',
-   '{"2":[7,8,9,10,11,12,13,14],"3":[7,8,9,10,11,12,13,14],"4":[7,8,9,10,11,12,13,14],"5":[7,8,9,10,11,12,13,14],"6":[7,8,9,10,11,12,13,14]}',
-   '[]'),
+   150, 'THB', 12, 5.0, 89, TRUE, TRUE, 'kittisak@oonjai.com', 'full'),
 
   -- ct-005: Aranya
   ('a0000000-0000-0000-0000-000000000005',
    'Dedicated caretaker with a gentle approach, experienced in dementia care and daily living assistance.',
    'Dementia Care, Home Care, Mobility',
-   95, 'THB', 7, 4.6, 31, TRUE, TRUE, 'aranya@oonjai.com', 'full',
-   '{"1":[9,10,11,12],"2":[9,10,11,12],"3":[9,10,11,12],"4":[9,10,11,12]}',
-   '[]'),
+   95, 'THB', 7, 4.6, 31, TRUE, TRUE, 'aranya@oonjai.com', 'full'),
 
   -- ct-006: Wichai
   ('a0000000-0000-0000-0000-000000000006',
    'Energetic caregiver who loves outdoor activities and helping seniors stay physically active and engaged.',
    'Mobility, Physical Therapy',
-   80, 'THB', 4, 4.5, 12, TRUE, TRUE, 'wichai@oonjai.com', 'full',
-   '{"1":[12,13,14,15,16,17,18,19],"2":[12,13,14,15,16,17,18,19],"3":[12,13,14,15,16,17,18,19],"4":[12,13,14,15,16,17,18,19],"5":[12,13,14,15,16,17,18,19]}',
-   '[]'),
+   80, 'THB', 4, 4.5, 12, TRUE, TRUE, 'wichai@oonjai.com', 'full'),
 
   -- ct-007: Supattra
   ('a0000000-0000-0000-0000-000000000007',
    'Experienced home care specialist with a background in nutrition planning and meal preparation for elderly.',
    'Home Care, Meal Prep, Post-Surgery',
-   90, 'THB', 5, 4.8, 27, TRUE, TRUE, 'supattra@oonjai.com', 'full',
-   '{"0":[9,10,11,12,13,14,15,16],"1":[9,10,11,12,13,14,15,16],"2":[9,10,11,12,13,14,15,16],"3":[9,10,11,12,13,14,15,16],"4":[9,10,11,12,13,14,15,16],"5":[9,10,11,12,13,14,15,16],"6":[9,10,11,12,13,14,15,16]}',
-   '[]'),
+   90, 'THB', 5, 4.8, 27, TRUE, TRUE, 'supattra@oonjai.com', 'full'),
 
   -- ct-008: Chalerm
   ('a0000000-0000-0000-0000-000000000008',
    'Calm and reliable caregiver specializing in overnight care and mobility support for seniors with limited movement.',
    'Mobility, Dementia Care, Home Care',
-   100, 'THB', 8, 4.7, 53, TRUE, TRUE, 'chalerm@oonjai.com', 'full',
-   '{"0":[8,9,10,11,12,13,14,15],"3":[8,9,10,11,12,13,14,15],"4":[8,9,10,11,12,13,14,15],"5":[8,9,10,11,12,13,14,15],"6":[8,9,10,11,12,13,14,15]}',
-   '[]')
+   100, 'THB', 8, 4.7, 53, TRUE, TRUE, 'chalerm@oonjai.com', 'full')
 ON CONFLICT ("UserID") DO NOTHING;
+
+-- ── Caretaker availability windows (1-hour slots, weekly regeneration) ──
+-- Each row is one bookable hour so bookings can be made hour-by-hour.
+-- Dates cover 2026-04-13 Mon → 2026-04-19 Sun.
+-- Per-caretaker schedule:
+--   ct-001: Mon-Fri 08-16  (hours 8..15)
+--   ct-002: Mon-Sat 10-18  (hours 10..17)
+--   ct-003: Mon-Fri 09-17  (hours 9..16)
+--   ct-004: Tue-Sat 07-15  (hours 7..14)
+--   ct-005: Mon-Thu 09-13  (hours 9..12)
+--   ct-006: Mon-Fri 12-20  (hours 12..19)
+--   ct-007: Every day 09-17 (hours 9..16)
+--   ct-008: Sun,Wed-Sat 08-16 (hours 8..15)
+WITH schedule (caretaker, day_date, hour_start, hour_end) AS (
+  VALUES
+    ('a0000000-0000-0000-0000-000000000001'::uuid, DATE '2026-04-13', 8, 15),
+    ('a0000000-0000-0000-0000-000000000001'::uuid, DATE '2026-04-14', 8, 15),
+    ('a0000000-0000-0000-0000-000000000001'::uuid, DATE '2026-04-15', 8, 15),
+    ('a0000000-0000-0000-0000-000000000001'::uuid, DATE '2026-04-16', 8, 15),
+    ('a0000000-0000-0000-0000-000000000001'::uuid, DATE '2026-04-17', 8, 15),
+    ('a0000000-0000-0000-0000-000000000002'::uuid, DATE '2026-04-13', 10, 17),
+    ('a0000000-0000-0000-0000-000000000002'::uuid, DATE '2026-04-14', 10, 17),
+    ('a0000000-0000-0000-0000-000000000002'::uuid, DATE '2026-04-15', 10, 17),
+    ('a0000000-0000-0000-0000-000000000002'::uuid, DATE '2026-04-16', 10, 17),
+    ('a0000000-0000-0000-0000-000000000002'::uuid, DATE '2026-04-17', 10, 17),
+    ('a0000000-0000-0000-0000-000000000002'::uuid, DATE '2026-04-18', 10, 17),
+    ('a0000000-0000-0000-0000-000000000003'::uuid, DATE '2026-04-13', 9, 16),
+    ('a0000000-0000-0000-0000-000000000003'::uuid, DATE '2026-04-14', 9, 16),
+    ('a0000000-0000-0000-0000-000000000003'::uuid, DATE '2026-04-15', 9, 16),
+    ('a0000000-0000-0000-0000-000000000003'::uuid, DATE '2026-04-16', 9, 16),
+    ('a0000000-0000-0000-0000-000000000003'::uuid, DATE '2026-04-17', 9, 16),
+    ('a0000000-0000-0000-0000-000000000004'::uuid, DATE '2026-04-14', 7, 14),
+    ('a0000000-0000-0000-0000-000000000004'::uuid, DATE '2026-04-15', 7, 14),
+    ('a0000000-0000-0000-0000-000000000004'::uuid, DATE '2026-04-16', 7, 14),
+    ('a0000000-0000-0000-0000-000000000004'::uuid, DATE '2026-04-17', 7, 14),
+    ('a0000000-0000-0000-0000-000000000004'::uuid, DATE '2026-04-18', 7, 14),
+    ('a0000000-0000-0000-0000-000000000005'::uuid, DATE '2026-04-13', 9, 12),
+    ('a0000000-0000-0000-0000-000000000005'::uuid, DATE '2026-04-14', 9, 12),
+    ('a0000000-0000-0000-0000-000000000005'::uuid, DATE '2026-04-15', 9, 12),
+    ('a0000000-0000-0000-0000-000000000005'::uuid, DATE '2026-04-16', 9, 12),
+    ('a0000000-0000-0000-0000-000000000006'::uuid, DATE '2026-04-13', 12, 19),
+    ('a0000000-0000-0000-0000-000000000006'::uuid, DATE '2026-04-14', 12, 19),
+    ('a0000000-0000-0000-0000-000000000006'::uuid, DATE '2026-04-15', 12, 19),
+    ('a0000000-0000-0000-0000-000000000006'::uuid, DATE '2026-04-16', 12, 19),
+    ('a0000000-0000-0000-0000-000000000006'::uuid, DATE '2026-04-17', 12, 19),
+    ('a0000000-0000-0000-0000-000000000007'::uuid, DATE '2026-04-13', 9, 16),
+    ('a0000000-0000-0000-0000-000000000007'::uuid, DATE '2026-04-14', 9, 16),
+    ('a0000000-0000-0000-0000-000000000007'::uuid, DATE '2026-04-15', 9, 16),
+    ('a0000000-0000-0000-0000-000000000007'::uuid, DATE '2026-04-16', 9, 16),
+    ('a0000000-0000-0000-0000-000000000007'::uuid, DATE '2026-04-17', 9, 16),
+    ('a0000000-0000-0000-0000-000000000007'::uuid, DATE '2026-04-18', 9, 16),
+    ('a0000000-0000-0000-0000-000000000007'::uuid, DATE '2026-04-19', 9, 16),
+    ('a0000000-0000-0000-0000-000000000008'::uuid, DATE '2026-04-15', 8, 15),
+    ('a0000000-0000-0000-0000-000000000008'::uuid, DATE '2026-04-16', 8, 15),
+    ('a0000000-0000-0000-0000-000000000008'::uuid, DATE '2026-04-17', 8, 15),
+    ('a0000000-0000-0000-0000-000000000008'::uuid, DATE '2026-04-18', 8, 15),
+    ('a0000000-0000-0000-0000-000000000008'::uuid, DATE '2026-04-19', 8, 15)
+)
+INSERT INTO "Caretaker_Availability" ("CaretakerID", "StartDateTime", "EndDateTime", "isActive")
+SELECT
+  s.caretaker,
+  (s.day_date + (h * INTERVAL '1 hour'))::timestamptz,
+  (s.day_date + ((h + 1) * INTERVAL '1 hour'))::timestamptz,
+  TRUE
+FROM schedule s
+CROSS JOIN LATERAL generate_series(s.hour_start, s.hour_end) AS h;
 
 -- ── Activities ──────────────────────────────────────────────────────────────
 INSERT INTO "ACTIVITY" ("ActivityID", "Title", "Category", "Tags", "Host", "HostAvatar", "HostDescription", "StartDate", "EndDate", "Location", "Price", "ParticipantCount", "Duration", "MaxPeople", "Rating", "Reviews", "Images", "CreatedDate")

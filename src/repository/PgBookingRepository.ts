@@ -210,6 +210,81 @@ export class PgBookingRepository implements IBookingRepository {
     return bookingId
   }
 
+  async reserveAndInsert(booking: Booking): Promise<string> {
+    const dto = booking.toDTO()
+    if (!dto.caretakerId) {
+      throw new Error("reserveAndInsert requires a caretakerId")
+    }
+    const shortId = crypto.randomUUID().replace(/-/g, "").substring(0, 8).toUpperCase()
+    const bookingId = `BK-${shortId}`
+    const startISO = dto.startDate
+    const endISO = dto.endDate
+    const caretakerId = dto.caretakerId
+    // Each Caretaker_Availability row is exactly 1 hour. A booking consumes
+    // (endISO - startISO) / 1h consecutive hourly rows.
+    const requiredHours = Math.max(
+      1,
+      Math.round((new Date(endISO).getTime() - new Date(startISO).getTime()) / (60 * 60 * 1000)),
+    )
+
+    return await sql.begin(async (tx) => {
+      // 1. Row-lock every active 1-hour slot that falls inside [start, end).
+      //    SELECT ... FOR UPDATE serializes concurrent reservations. Without
+      //    SKIP LOCKED, the second transaction waits, then re-reads the rows
+      //    with isActive=false (set by the first tx), so the count below fails.
+      const slots = await tx`
+        SELECT "Availability_ID"
+        FROM "Caretaker_Availability"
+        WHERE "CaretakerID" = ${caretakerId}
+          AND "isActive" = TRUE
+          AND "StartDateTime" >= ${startISO}
+          AND "EndDateTime"   <= ${endISO}
+        FOR UPDATE
+      `
+      if (slots.length !== requiredHours) {
+        throw new Error("NOT_AVAILABLE: caretaker has no active availability covering this range")
+      }
+
+      // 2. Re-check booking conflicts under the lock (belt-and-suspenders).
+      const conflicts = await tx`
+        SELECT 1
+        FROM "BOOKING"
+        WHERE "CaretakerID" = ${caretakerId}
+          AND "Status" NOT IN ('cancelled')
+          AND "StartDateTime" < ${endISO}
+          AND "EndDateTime"   > ${startISO}
+      `
+      if (conflicts.length > 0) {
+        throw new Error("CONFLICT: caretaker is not available for the requested time slot")
+      }
+
+      // 3. Insert booking row.
+      await tx`
+        INSERT INTO "BOOKING" (
+          "BookingID", "AdultChildID", "CaretakerID", "SeniorID", "ActivityID",
+          "ServiceType", "Status", "StartDateTime", "EndDateTime",
+          "Location", "Notes", "EstimatedCost", "Currency", "CreatedDate"
+        ) VALUES (
+          ${bookingId}, ${dto.adultChildId}, ${caretakerId}, ${dto.seniorId},
+          ${dto.activityId ?? null}, ${dto.serviceType}, ${dto.status},
+          ${dto.startDate}, ${dto.endDate}, ${dto.location}, ${dto.note},
+          ${dto.estimatedCost}, ${dto.currency}, ${new Date(dto.createdAt.getTime()).toISOString()}
+        )
+      `
+
+      // 4. Flip every locked hourly slot to inactive.
+      await tx`
+        UPDATE "Caretaker_Availability"
+        SET "isActive" = FALSE
+        WHERE "CaretakerID" = ${caretakerId}
+          AND "StartDateTime" >= ${startISO}
+          AND "EndDateTime"   <= ${endISO}
+      `
+
+      return bookingId
+    })
+  }
+
   async save(booking: Booking): Promise<boolean> {
     const dto = booking.toDTO()
     if (!dto.id) return false

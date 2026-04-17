@@ -1,7 +1,7 @@
 import type {User} from "../entity/User"
 import type {UUID} from "../type/uuid"
 import type {CaretakerFilter} from "@type/caretaker"
-import type {AdultChildAttributes, CareTakerUserAttributes, PartialUserDTO, UserDTO} from "@entity/UserDTO"
+import type {AdultChildAttributes, CareTakerUserAttributes, UserDTO} from "@entity/UserDTO"
 
 export interface IUserRepository {
   save(user: User): Promise<[boolean, UUID?]>
