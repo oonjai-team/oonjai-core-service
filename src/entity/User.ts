@@ -10,6 +10,7 @@ export class User {
   protected email: string
   protected firstname: string
   protected lastname: string
+  protected phone: string
   protected createdAt: Timestamp
   protected caretaker?: Caretaker
   protected adultChild?: AdultChild
@@ -17,15 +18,16 @@ export class User {
 
   constructor(userDTOLike: UserDTO)
   constructor(email: string, firtname: string, lastname: string, createdAt: Timestamp, role: RoleEnum, id?: UUID,
-              caretaker?: Caretaker, adultChild?: AdultChild)
+              caretaker?: Caretaker, adultChild?: AdultChild, phone?: string)
 
-  constructor(...args: [UserDTO] | [string, string, string, Timestamp, RoleEnum, UUID?, Caretaker?, AdultChild?]) {
+  constructor(...args: [UserDTO] | [string, string, string, Timestamp, RoleEnum, UUID?, Caretaker?, AdultChild?, string?]) {
     if (typeof args[0] === "object" && "email" in args[0]) {
       // its dto
       const dto = args[0] as UserDTO
       this.email = dto.email
       this.firstname = dto.firstname
       this.lastname = dto.lastname
+      this.phone = dto.phone ?? ''
       this.createdAt = dto.createdAt
       this.id = new UUID(dto.id)
       this.role = dto.role
@@ -40,19 +42,28 @@ export class User {
       return
     }
 
-    const arr = args as [string, string, string, Timestamp, RoleEnum, UUID?, Caretaker?, AdultChild?]
+    const arr = args as [string, string, string, Timestamp, RoleEnum, UUID?, Caretaker?, AdultChild?, string?]
     this.email = arr[0]
     this.firstname = arr[1]
     this.lastname = arr[2]
     this.createdAt = arr[3]
     this.role = arr[4]
     this.id = arr[5]
+    this.phone = arr[8] ?? ''
     if (arr[4] === RoleEnum.CARETAKER && arr[6]) {
       this.caretaker = arr[6]
     }
     if (arr[4] === RoleEnum.ADULTCHILD && arr[7]) {
       this.adultChild = arr[7]
     }
+  }
+
+  public setPhone(phone: string) {
+    this.phone = phone
+  }
+
+  public getPhone(): string {
+    return this.phone
   }
 
   public isNew(): boolean {
@@ -108,6 +119,7 @@ export class User {
       email: this.email,
       firstname: this.firstname,
       lastname: this.lastname,
+      phone: this.phone,
       role: this.role,
       createdAt: this.createdAt,
       id: this.id?.toString(),

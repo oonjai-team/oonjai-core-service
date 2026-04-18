@@ -8,6 +8,7 @@ export interface UserDTO{
   email: string
   firstname: string
   lastname: string
+  phone: string
   createdAt: Timestamp
   role: RoleEnum
   caretaker?: CareTakerUserAttributes
@@ -20,7 +21,6 @@ export type PartialUserDTO = Partial<Omit<UserDTO, "caretaker" | "adultChild"> &
 }>
 
 export interface AdultChildAttributes {
-  phone: string
   relationship: string
   goal: string
   concerns: string[]

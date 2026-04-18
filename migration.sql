@@ -65,7 +65,6 @@ CREATE INDEX idx_user_role  ON "USER" ("Role");
 -- ============================================================
 CREATE TABLE "ADULT_CHILD" (
   "UserID"       UUID PRIMARY KEY REFERENCES "USER"("UserID") ON DELETE CASCADE,
-  "Phone"        VARCHAR(50),
   "Relationship" VARCHAR(100),
   "Goal"         TEXT,
   "Concerns"     JSONB DEFAULT '[]'
@@ -127,6 +126,7 @@ CREATE TABLE "SENIOR_PROFILE" (
   "DateOfBirth"  DATE,
   "MobilityLevel" VARCHAR(50),
   "HealthNotes"  TEXT,
+  "HomeLocation" TEXT NOT NULL,
   "CreatedDate"  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -228,7 +228,6 @@ CREATE INDEX idx_payment_checkout    ON "PAYMENT" ("CheckoutSessionId");
 CREATE TABLE "INCIDENT" (
   "IncidentID"     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "BookingID"      TEXT REFERENCES "BOOKING"("BookingID"),
-  "SeniorID"       UUID REFERENCES "SENIOR_PROFILE"("SeniorID"),
   "IncidentType"   VARCHAR(50),
   "IncidentStatus" VARCHAR(20) DEFAULT 'noted',
   "Details"        TEXT,
@@ -236,7 +235,6 @@ CREATE TABLE "INCIDENT" (
 );
 
 CREATE INDEX idx_incident_booking ON "INCIDENT" ("BookingID");
-CREATE INDEX idx_incident_senior  ON "INCIDENT" ("SeniorID");
 
 -- ============================================================
 -- 11. STATUS_LOG

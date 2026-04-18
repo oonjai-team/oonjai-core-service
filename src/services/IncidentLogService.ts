@@ -20,7 +20,7 @@ export class IncidentLogService implements IService {
     return "IncidentLogService"
   }
 
-  public async createIncidentLog(bookingId: string, seniorId: UUID, incidentType: string, detail: string): Promise<IncidentLog> {
+  public async createIncidentLog(bookingId: string, incidentType: string, detail: string): Promise<IncidentLog> {
     if (!VALID_INCIDENT_TYPES.includes(incidentType as any)) {
       throw new Error(`INVALID_TYPE: incidentType must be one of: ${VALID_INCIDENT_TYPES.join(", ")}`)
     }
@@ -30,20 +30,15 @@ export class IncidentLogService implements IService {
       throw new Error("NOT_FOUND: booking not found")
     }
 
-    if (booking.toDTO().seniorId !== seniorId.toString()) {
-      throw new Error("FORBIDDEN: seniorId does not match the booking's senior")
-    }
-
     const log = new IncidentLog(
       bookingId,
-      seniorId,
       incidentType as any,
       detail,
       "noted",
       TimestampHelper.now()
     )
     const id = await this.incidentLogRepo.insert(log)
-    return new IncidentLog(bookingId, seniorId, incidentType as any, detail, "noted", log.toDTO().createdAt, id)
+    return new IncidentLog(bookingId, incidentType as any, detail, "noted", log.toDTO().createdAt, id)
   }
 
   public async getIncidentLogsFromBooking(bookingId: string): Promise<IncidentLog[]> {

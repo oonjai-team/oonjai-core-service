@@ -20,9 +20,9 @@ export const updateUser: Endpoint<[UserService]> = {
       firstname: body?.firstname as string | undefined,
       lastname: body?.lastname as string | undefined,
       email: body?.email as string | undefined,
+      phone: body?.phone as string | undefined,
       ...(adultChild ? {
         adultChild: {
-          phone: adultChild.phone as string | undefined,
           relationship: adultChild.relationship as string | undefined,
           goal: adultChild.goal as string | undefined,
           concerns: adultChild.concerns as string[] | undefined,

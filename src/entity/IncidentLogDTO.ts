@@ -9,7 +9,6 @@ export const VALID_INCIDENT_STATUSES: IncidentStatus[] = ["noted", "resolved", "
 export interface IncidentLogDTO {
   id: string | undefined
   bookingId: string
-  seniorId: string
   incidentType: IncidentType
   detail: string
   status: IncidentStatus

@@ -18,15 +18,15 @@ export class SeniorManagementService implements IService {
     return "SeniorManagementService"
   }
 
-  public async addSeniorToAdultChild(adultChildId: UUID, fullname: string, dateOfBirth: string, mobilityLevel: string, healthNote: string): Promise<Senior> {
+  public async addSeniorToAdultChild(adultChildId: UUID, fullname: string, dateOfBirth: string, mobilityLevel: string, healthNote: string, homeLocation: string): Promise<Senior> {
     const user = await this.userRepo.findById(adultChildId)
     if (!user) {
       throw new Error("adult child not found")
     }
 
-    const senior = new Senior(adultChildId, fullname, dateOfBirth, mobilityLevel, healthNote, TimestampHelper.now())
+    const senior = new Senior(adultChildId, fullname, dateOfBirth, mobilityLevel, healthNote, homeLocation, TimestampHelper.now())
     const id = await this.seniorRepo.insert(senior)
-    return new Senior(adultChildId, fullname, dateOfBirth, mobilityLevel, healthNote, senior.toDTO().createdAt, id)
+    return new Senior(adultChildId, fullname, dateOfBirth, mobilityLevel, healthNote, homeLocation, senior.toDTO().createdAt, id)
   }
 
   public async removeSeniorFromAdultChild(adultChildId: UUID, seniorId: UUID): Promise<void> {

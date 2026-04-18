@@ -1,6 +1,5 @@
 import {type Endpoint, unauthorized, badRequest, created} from "@http/HttpContext"
 import type {IncidentLogService} from "@serv/IncidentLogService"
-import {UUID} from "@type/uuid"
 
 export const createIncidentLog: Endpoint<[IncidentLogService]> = {
   method: "POST",
@@ -16,8 +15,8 @@ export const createIncidentLog: Endpoint<[IncidentLogService]> = {
     }
 
     const body = ctx.body as Record<string, unknown>
-    if (!body?.seniorId || !body?.incidentType || !body?.detail) {
-      return badRequest("seniorId, incidentType, and detail are required")
+    if (!body?.incidentType || !body?.detail) {
+      return badRequest("incidentType and detail are required")
     }
 
     const bookingId = ctx.params?.bookingId as string
@@ -25,7 +24,6 @@ export const createIncidentLog: Endpoint<[IncidentLogService]> = {
     try {
       const log = await service.createIncidentLog(
         bookingId,
-        new UUID(body.seniorId as string),
         body.incidentType as string,
         body.detail as string
       )

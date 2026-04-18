@@ -15,7 +15,8 @@ export class PgSeniorRepository implements ISeniorRepository {
           "FullName"      = ${dto.fullname},
           "DateOfBirth"   = ${dto.dateOfBirth},
           "MobilityLevel" = ${dto.mobilityLevel},
-          "HealthNotes"   = ${dto.healthNote}
+          "HealthNotes"   = ${dto.healthNote},
+          "HomeLocation"  = ${dto.homeLocation}
       WHERE "SeniorID" = ${dto.id}
     `
     return result.count > 0
@@ -34,6 +35,7 @@ export class PgSeniorRepository implements ISeniorRepository {
       dateOfBirth: row.DateOfBirth,
       mobilityLevel: row.MobilityLevel,
       healthNote: row.HealthNotes,
+      homeLocation: row.HomeLocation ?? '',
       createdAt: new Timestamp(new Date(row.CreatedDate).getTime()),
     })
   }
@@ -49,6 +51,7 @@ export class PgSeniorRepository implements ISeniorRepository {
       dateOfBirth: row.DateOfBirth,
       mobilityLevel: row.MobilityLevel,
       healthNote: row.HealthNotes,
+      homeLocation: row.HomeLocation ?? '',
       createdAt: new Timestamp(new Date(row.CreatedDate).getTime()),
     }))
   }
@@ -56,8 +59,8 @@ export class PgSeniorRepository implements ISeniorRepository {
   async insert(senior: Senior): Promise<UUID> {
     const dto = senior.toDTO()
     const rows = await sql`
-      INSERT INTO "SENIOR_PROFILE" ("AdultChildID", "FullName", "DateOfBirth", "MobilityLevel", "HealthNotes", "CreatedDate")
-      VALUES (${dto.adultChildId}, ${dto.fullname}, ${dto.dateOfBirth}, ${dto.mobilityLevel}, ${dto.healthNote}, ${new Date(dto.createdAt.getTime())})
+      INSERT INTO "SENIOR_PROFILE" ("AdultChildID", "FullName", "DateOfBirth", "MobilityLevel", "HealthNotes", "HomeLocation", "CreatedDate")
+      VALUES (${dto.adultChildId}, ${dto.fullname}, ${dto.dateOfBirth}, ${dto.mobilityLevel}, ${dto.healthNote}, ${dto.homeLocation}, ${new Date(dto.createdAt.getTime())})
       RETURNING "SeniorID"
     `
     return new UUID(rows[0]!.SeniorID)

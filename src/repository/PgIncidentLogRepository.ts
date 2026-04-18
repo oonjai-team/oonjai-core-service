@@ -16,7 +16,10 @@ export class PgIncidentLogRepository implements IIncidentLogRepository {
 
   async findBySeniorId(seniorId: UUID): Promise<IncidentLog[]> {
     const rows = await sql`
-      SELECT * FROM "INCIDENT" WHERE "SeniorID" = ${seniorId.toString()}
+      SELECT i.*
+      FROM "INCIDENT" i
+      JOIN "BOOKING" b ON b."BookingID" = i."BookingID"
+      WHERE b."SeniorID" = ${seniorId.toString()}
     `
     return rows.map(row => this.toEntity(row))
   }
@@ -33,8 +36,8 @@ export class PgIncidentLogRepository implements IIncidentLogRepository {
   async insert(log: IncidentLog): Promise<UUID> {
     const dto = log.toDTO()
     const rows = await sql`
-      INSERT INTO "INCIDENT" ("BookingID", "SeniorID", "IncidentType", "IncidentStatus", "Details", "CreatedDate")
-      VALUES (${dto.bookingId}, ${dto.seniorId}, ${dto.incidentType}, ${dto.status}, ${dto.detail}, ${new Date(dto.createdAt.getTime())})
+      INSERT INTO "INCIDENT" ("BookingID", "IncidentType", "IncidentStatus", "Details", "CreatedDate")
+      VALUES (${dto.bookingId}, ${dto.incidentType}, ${dto.status}, ${dto.detail}, ${new Date(dto.createdAt.getTime())})
       RETURNING "IncidentID"
     `
     return new UUID(rows[0]!.IncidentID)
@@ -46,7 +49,6 @@ export class PgIncidentLogRepository implements IIncidentLogRepository {
     const result = await sql`
       UPDATE "INCIDENT"
       SET "BookingID"       = ${dto.bookingId},
-          "SeniorID"        = ${dto.seniorId},
           "IncidentType"    = ${dto.incidentType},
           "IncidentStatus"  = ${dto.status},
           "Details"         = ${dto.detail}
@@ -59,7 +61,6 @@ export class PgIncidentLogRepository implements IIncidentLogRepository {
     return new IncidentLog({
       id: row.IncidentID,
       bookingId: row.BookingID,
-      seniorId: row.SeniorID,
       incidentType: row.IncidentType as IncidentType,
       detail: row.Details,
       status: row.IncidentStatus as IncidentStatus,

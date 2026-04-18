@@ -8,5 +8,6 @@ export interface SeniorDTO {
   dateOfBirth: string
   mobilityLevel: string
   healthNote: string
+  homeLocation: string
   createdAt: Timestamp
 }

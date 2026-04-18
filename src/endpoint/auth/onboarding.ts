@@ -23,8 +23,8 @@ export const onboarding: Endpoint<[UserService]> = {
     }
 
     userService.updateUser(new UUID(session?.getUserId()), {
+      phone: body.phone as string,
       adultChild: {
-        phone: body.phone as string,
         relationship: body.relationship as string,
         goal: body.goal as string,
         concerns,

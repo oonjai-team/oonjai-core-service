@@ -13,8 +13,13 @@ export class TestIncidentLogRepository implements IIncidentLogRepository {
   }
 
   public async findBySeniorId(seniorId: UUID): Promise<IncidentLog[]> {
+    const bookingIds = new Set(
+      this.db.getAll("booking")
+        .filter((b: any) => b.seniorId === seniorId.toString())
+        .map((b: any) => b.id)
+    )
     return this.db.getAll("incidentLog")
-      .filter(dto => dto.seniorId === seniorId.toString())
+      .filter(dto => bookingIds.has(dto.bookingId))
       .map(dto => new IncidentLog(dto))
   }
 

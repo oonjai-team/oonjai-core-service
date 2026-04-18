@@ -19,7 +19,7 @@ export class PgUserRepository implements IUserRepository {
       const result = await sql.begin(async (tx) => {
         const [row] = await tx`
           INSERT INTO "USER" ("FirstName", "LastName", "Email", "Phone", "Role", "CreatedDate")
-          VALUES (${dto.firstname}, ${dto.lastname}, ${dto.email}, ${''}, ${dto.role}, ${new Date()})
+          VALUES (${dto.firstname}, ${dto.lastname}, ${dto.email}, ${dto.phone ?? ''}, ${dto.role}, ${new Date()})
           RETURNING "UserID"
         `
         const userId = row!.UserID as string
@@ -42,9 +42,9 @@ export class PgUserRepository implements IUserRepository {
         if (user.isAdultChild() && dto.adultChild) {
           const ac = dto.adultChild
           await tx`
-            INSERT INTO "ADULT_CHILD" ("UserID", "Phone", "Relationship", "Goal", "Concerns")
+            INSERT INTO "ADULT_CHILD" ("UserID", "Relationship", "Goal", "Concerns")
             VALUES (
-              ${userId}, ${ac.phone}, ${ac.relationship}, ${ac.goal},
+              ${userId}, ${ac.relationship}, ${ac.goal},
               ${sql.json(ac.concerns)}
             )
           `
@@ -68,6 +68,7 @@ export class PgUserRepository implements IUserRepository {
         SET "FirstName" = ${dto.firstname},
             "LastName" = ${dto.lastname},
             "Email" = ${dto.email},
+            "Phone" = ${dto.phone ?? ''},
             "Role" = ${dto.role}
         WHERE "UserID" = ${uid.toString()}
       `
@@ -101,13 +102,12 @@ export class PgUserRepository implements IUserRepository {
       if (user.isAdultChild() && dto.adultChild) {
         const ac = dto.adultChild
         await tx`
-          INSERT INTO "ADULT_CHILD" ("UserID", "Phone", "Relationship", "Goal", "Concerns")
+          INSERT INTO "ADULT_CHILD" ("UserID", "Relationship", "Goal", "Concerns")
           VALUES (
-            ${uid.toString()}, ${ac.phone}, ${ac.relationship}, ${ac.goal},
+            ${uid.toString()}, ${ac.relationship}, ${ac.goal},
             ${sql.json(ac.concerns)}
           )
           ON CONFLICT ("UserID") DO UPDATE SET
-            "Phone" = EXCLUDED."Phone",
             "Relationship" = EXCLUDED."Relationship",
             "Goal" = EXCLUDED."Goal",
             "Concerns" = EXCLUDED."Concerns"
@@ -134,7 +134,7 @@ export class PgUserRepository implements IUserRepository {
         c."Bio", c."Specialization", c."HourlyRate", c."Currency",
         c."Experience", c."Rating", c."ReviewCount", c."IsVerified",
         c."ContactInfo", c."Permission",
-        ac."Phone" AS "ac_Phone", ac."Relationship", ac."Goal", ac."Concerns"
+        ac."UserID" AS "ac_UserID", ac."Relationship", ac."Goal", ac."Concerns"
       FROM "USER" u
       LEFT JOIN "CARETAKER" c ON c."UserID" = u."UserID"
       LEFT JOIN "ADULT_CHILD" ac ON ac."UserID" = u."UserID"
@@ -152,7 +152,7 @@ export class PgUserRepository implements IUserRepository {
         c."Bio", c."Specialization", c."HourlyRate", c."Currency",
         c."Experience", c."Rating", c."ReviewCount", c."IsVerified",
         c."ContactInfo", c."Permission",
-        ac."Phone" AS "ac_Phone", ac."Relationship", ac."Goal", ac."Concerns"
+        ac."UserID" AS "ac_UserID", ac."Relationship", ac."Goal", ac."Concerns"
       FROM "USER" u
       LEFT JOIN "CARETAKER" c ON c."UserID" = u."UserID"
       LEFT JOIN "ADULT_CHILD" ac ON ac."UserID" = u."UserID"
@@ -217,6 +217,7 @@ export class PgUserRepository implements IUserRepository {
     if (data.firstname !== undefined) sets.push(sql`"FirstName" = ${data.firstname}`)
     if (data.lastname !== undefined) sets.push(sql`"LastName" = ${data.lastname}`)
     if (data.email !== undefined) sets.push(sql`"Email" = ${data.email}`)
+    if (data.phone !== undefined) sets.push(sql`"Phone" = ${data.phone}`)
     if (data.role !== undefined) sets.push(sql`"Role" = ${data.role}`)
 
     if (sets.length === 0) return false
@@ -265,14 +266,13 @@ export class PgUserRepository implements IUserRepository {
     const idStr = id.toString()
 
     await sql`
-      INSERT INTO "ADULT_CHILD" ("UserID", "Phone", "Relationship", "Goal", "Concerns")
+      INSERT INTO "ADULT_CHILD" ("UserID", "Relationship", "Goal", "Concerns")
       VALUES (
         ${idStr},
-        ${data.phone ?? ''}, ${data.relationship ?? ''}, ${data.goal ?? ''},
+        ${data.relationship ?? ''}, ${data.goal ?? ''},
         ${sql.json(data.concerns ?? [])}
       )
       ON CONFLICT ("UserID") DO UPDATE SET
-        ${data.phone !== undefined ? sql`"Phone" = ${data.phone},` : sql``}
         ${data.relationship !== undefined ? sql`"Relationship" = ${data.relationship},` : sql``}
         ${data.goal !== undefined ? sql`"Goal" = ${data.goal},` : sql``}
         ${data.concerns !== undefined ? sql`"Concerns" = ${sql.json(data.concerns)},` : sql``}
@@ -303,15 +303,14 @@ export class PgUserRepository implements IUserRepository {
       })
     }
 
-    if (row.Role === RoleEnum.ADULTCHILD && row.ac_Phone !== undefined) {
+    if (row.Role === RoleEnum.ADULTCHILD && row.ac_UserID) {
       ac = new AdultChild({
-        phone: row.ac_Phone ?? '',
         relationship: row.Relationship ?? '',
         goal: row.Goal ?? '',
         concerns: row.Concerns ?? [],
       })
     }
 
-    return new User(row.Email, row.FirstName, row.LastName, ts, row.Role as RoleEnum, id, ct, ac)
+    return new User(row.Email, row.FirstName, row.LastName, ts, row.Role as RoleEnum, id, ct, ac, row.Phone ?? '')
   }
 }

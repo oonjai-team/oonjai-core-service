@@ -117,7 +117,11 @@ function randomInt(min: number, max: number): number {
 
 function buildActivity(index: number, pocIds: string[]) {
   const category = CATEGORIES[index % CATEGORIES.length]
-  const city = CITIES[index % CITIES.length]
+  // City rotates on a SLOWER cycle than category so every (category × city)
+  // pair gets populated. Using the same modulo base as CATEGORIES here would
+  // lock category and city into a 1:1 correlation, leaving cross combinations
+  // empty and filters looking "broken".
+  const city = CITIES[Math.floor(index / CATEGORIES.length) % CITIES.length]
   const venues = VENUES[city]
   const venue = venues[randomInt(0, venues.length - 1)]
   const titles = TITLE_TEMPLATES[category]

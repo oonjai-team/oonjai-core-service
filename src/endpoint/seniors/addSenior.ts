@@ -13,8 +13,8 @@ export const addSenior: Endpoint<[SeniorManagementService]> = {
       return unauthorized("User must be logged in to add a senior")
     }
 
-    if (!body?.fullname || !body?.dateOfBirth || !body?.mobilityLevel || !body?.healthNote) {
-      return badRequest("fullname, dateOfBirth, mobilityLevel and healthNote are required")
+    if (!body?.fullname || !body?.dateOfBirth || !body?.mobilityLevel || !body?.homeLocation) {
+      return badRequest("fullname, dateOfBirth, mobilityLevel and homeLocation are required")
     }
 
     const senior = await service.addSeniorToAdultChild(
@@ -22,7 +22,8 @@ export const addSenior: Endpoint<[SeniorManagementService]> = {
       body.fullname as string,
       body.dateOfBirth as string,
       body.mobilityLevel as string,
-      body.healthNote as string
+      (body.healthNote as string) ?? "",
+      body.homeLocation as string
     )
 
     return created(senior.toDTO())
