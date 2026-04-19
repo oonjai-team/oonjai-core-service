@@ -151,6 +151,8 @@ CREATE TABLE "ACTIVITY" (
   "Rating"           NUMERIC(3,2) DEFAULT 0,
   "Reviews"          INTEGER DEFAULT 0,
   "Images"           JSONB DEFAULT '[]',
+  "Overview"         TEXT,
+  "WhatToBring"      JSONB DEFAULT '[]',
   "CreatedDate"      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

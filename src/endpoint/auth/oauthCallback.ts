@@ -41,7 +41,7 @@ export const oauthCallback: Endpoint<[OAuthRegistry, AuthService]> = {
           email,
           token.access_token,
           profile.firstname,
-          profile.lastname,
+          profile.lastname ?? "",
           RoleEnum.ADULTCHILD
         )
         sessionToken = await authService.login(email)

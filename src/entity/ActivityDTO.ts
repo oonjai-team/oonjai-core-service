@@ -30,5 +30,7 @@ export interface ActivityDTO {
   rating: number
   reviews: number
   images: string[]
+  overview: string
+  whatToBring: string[]
   createdAt: Timestamp
 }

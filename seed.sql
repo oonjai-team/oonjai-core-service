@@ -153,7 +153,7 @@ INSERT INTO "Point_of_Contact" ("POCID", "ProviderID", "FirstName", "LastName", 
 ON CONFLICT ("POCID") DO NOTHING;
 
 -- ── Activities ──────────────────────────────────────────────────────────────
-INSERT INTO "ACTIVITY" ("ActivityID", "Title", "Category", "Tags", "POCID", "StartDate", "EndDate", "Location", "Price", "ParticipantCount", "Duration", "MaxPeople", "Rating", "Reviews", "Images", "CreatedDate")
+INSERT INTO "ACTIVITY" ("ActivityID", "Title", "Category", "Tags", "POCID", "StartDate", "EndDate", "Location", "Price", "ParticipantCount", "Duration", "MaxPeople", "Rating", "Reviews", "Images", "Overview", "WhatToBring", "CreatedDate")
 VALUES
   -- act-001: Chill Group Walk (host: Tom Brady)
   (gen_random_uuid(),
@@ -163,6 +163,8 @@ VALUES
    '2025-10-12T07:00:00.000Z', '2025-10-12T09:00:00.000Z',
    'Lumphini Park, BKK', 150, 9, '120 Mins', 10, 4.9, 5,
    '["https://images.unsplash.com/photo-1552508744-1696d4464960?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80"]',
+   'Join a friendly, low-impact group walk through the shady paths of Lumphini Park. Pace is gentle and suited for seniors who enjoy movement and fresh air in good company.',
+   '["Comfortable walking shoes","Water bottle","Sunscreen and hat","Light, breathable clothing"]',
    to_timestamp(1776012445699 / 1000.0)),
 
   -- act-002: Group Dinner (host: Grandma Mali)
@@ -173,6 +175,8 @@ VALUES
    '2025-10-12T10:00:00.000Z', '2025-10-12T12:00:00.000Z',
    'Lumphini Park, BKK', 450, 4, '120 Mins', 8, 4.8, 12,
    '["https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80"]',
+   'Share a warm, home-style Thai dinner with Grandma Mali. Seniors enjoy classic comfort dishes and light conversation in a relaxed, welcoming setting.',
+   '["Any dietary notes to share with the host","A light sweater for the A/C","A smile"]',
    to_timestamp(1776012445699 / 1000.0)),
 
   -- act-003: Yoga Group (host: Grandma Mali)
@@ -183,6 +187,8 @@ VALUES
    '2025-10-12T10:00:00.000Z', '2025-10-12T11:00:00.000Z',
    'Lumphini Park, BKK', 300, 14, '60 Mins', 15, 5.0, 8,
    '["https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1552508744-1696d4464960?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80"]',
+   'A beginner-friendly yoga session focused on gentle stretching, balance, and breathing. Suitable for seniors with a range of mobility levels.',
+   '["Yoga mat (spare mats available)","Water bottle","Comfortable, stretchable clothing","Small towel"]',
    to_timestamp(1776012445699 / 1000.0)),
 
   -- act-004: Meditation For Wellness (host: Tom Brady)
@@ -193,4 +199,6 @@ VALUES
    '2025-10-12T08:00:00.000Z', '2025-10-12T09:30:00.000Z',
    'Lumphini Park, BKK', 250, 20, '90 Mins', 20, 4.7, 3,
    '["https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593811167562-9cef47bfc4d7?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1515041219749-89347f83291a?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1528315651484-4dda50c765ef?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1554244933-d876deb6b2fa?auto=format&fit=crop&w=800&q=80"]',
+   'A guided meditation session aimed at calming the mind and easing tension. Includes breathing exercises and gentle reflection.',
+   '["Comfortable, loose clothing","A light shawl or blanket","An open mind"]',
    to_timestamp(1776012445699 / 1000.0));

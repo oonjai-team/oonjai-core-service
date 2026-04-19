@@ -21,6 +21,8 @@ const selectColumns = sql`
   a."Rating",
   a."Reviews",
   a."Images",
+  a."Overview",
+  a."WhatToBring",
   a."CreatedDate",
   poc."FirstName"   AS "HostFirstName",
   poc."LastName"    AS "HostLastName",
@@ -118,14 +120,17 @@ export class PgActivityRepository implements IActivityRepository {
       INSERT INTO "ACTIVITY" (
         "Title", "Category", "Tags", "POCID",
         "StartDate", "EndDate", "Location", "Price", "ParticipantCount",
-        "Duration", "MaxPeople", "Rating", "Reviews", "Images", "CreatedDate"
+        "Duration", "MaxPeople", "Rating", "Reviews", "Images",
+        "Overview", "WhatToBring", "CreatedDate"
       )
       VALUES (
         ${dto.title}, ${dto.category}, ${JSON.stringify(dto.tags)}, ${dto.pocId ?? null},
         ${dto.startDate}, ${dto.endDate}, ${dto.location},
         ${dto.price}, ${dto.participantCount}, ${dto.duration},
         ${dto.maxPeople}, ${dto.rating}, ${dto.reviews},
-        ${JSON.stringify(dto.images)}, ${new Date(dto.createdAt.getTime())}
+        ${JSON.stringify(dto.images)},
+        ${dto.overview ?? ""}, ${JSON.stringify(dto.whatToBring ?? [])},
+        ${new Date(dto.createdAt.getTime())}
       )
       RETURNING "ActivityID"
     `
@@ -150,7 +155,9 @@ export class PgActivityRepository implements IActivityRepository {
           "MaxPeople"        = ${dto.maxPeople},
           "Rating"           = ${dto.rating},
           "Reviews"          = ${dto.reviews},
-          "Images"           = ${JSON.stringify(dto.images)}
+          "Images"           = ${JSON.stringify(dto.images)},
+          "Overview"         = ${dto.overview ?? ""},
+          "WhatToBring"      = ${JSON.stringify(dto.whatToBring ?? [])}
       WHERE "ActivityID" = ${dto.id}
     `
     return result.count > 0
@@ -190,6 +197,8 @@ export class PgActivityRepository implements IActivityRepository {
       rating: Number(row.Rating),
       reviews: Number(row.Reviews),
       images: parseJsonArray(row.Images),
+      overview: row.Overview ?? "",
+      whatToBring: parseJsonArray(row.WhatToBring),
       createdAt: new Timestamp(new Date(row.CreatedDate).getTime()),
     })
   }

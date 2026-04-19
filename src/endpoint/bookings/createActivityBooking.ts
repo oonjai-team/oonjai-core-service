@@ -93,34 +93,48 @@ export const createActivityBooking: Endpoint<[BookingService, ActivityService]> 
     const transportFee = pickupFee + dropoffFee
     const totalAmount = activityFee + transportFee
 
-    // Compose a note that preserves senior list + transport metadata
-    const metaParts: string[] = []
-    metaParts.push(`Seniors: ${seniorIds.join(", ")}`)
-    metaParts.push(`Pickup: ${pickupMode}${pickupMode === "arrange" ? ` (${pickupLocation})` : ""}`)
-    metaParts.push(`Dropoff: ${dropoffMode}${dropoffMode === "arrange" ? ` (${dropoffLocation})` : ""}`)
-    const composedNote = note ? `${note} | ${metaParts.join(" | ")}` : metaParts.join(" | ")
+    // ── Per-senior transport allocation: even split to 2 decimals, rounding
+    //    residue absorbed into the first booking so SUM(estimatedCost) == totalAmount.
+    const perSeniorTransport = Math.floor((transportFee / seniorIds.length) * 100) / 100
+    const firstSeniorTransport = Math.round((transportFee - perSeniorTransport * (seniorIds.length - 1)) * 100) / 100
+
+    const transportMeta = `Pickup: ${pickupMode}${pickupMode === "arrange" ? ` (${pickupLocation})` : ""} | Dropoff: ${dropoffMode}${dropoffMode === "arrange" ? ` (${dropoffLocation})` : ""}`
 
     try {
-      // Create a single booking for the activity (use first senior as primary)
-      const booking = await bookingService.createActivityBooking(
-        new UUID(user.getId()),
-        new UUID(seniorIds[0]),
-        activityId,
-        startDate,
-        endDate,
-        activityDTO.location,
-        totalAmount,
-        "THB",
-        composedNote,
-      )
+      // Create one BOOKING per senior so each senior's activity-status view
+      // has its own record (cancel, review, conflicts are all tracked per-booking).
+      const bookingIds: string[] = []
+      for (let i = 0; i < seniorIds.length; i++) {
+        const sid = seniorIds[i]
+        const seniorTransport = i === 0 ? firstSeniorTransport : perSeniorTransport
+        const seniorCost = Math.round((activityDTO.price + seniorTransport) * 100) / 100
+        const seniorNote = note
+          ? `${note} | ${transportMeta}`
+          : transportMeta
 
-      // Persist the updated participant count
+        const booking = await bookingService.createActivityBooking(
+          new UUID(user.getId()),
+          new UUID(sid),
+          activityId,
+          startDate,
+          endDate,
+          activityDTO.location,
+          seniorCost,
+          "THB",
+          seniorNote,
+        )
+        const bookingDTO = booking.toDTO()
+        if (bookingDTO.id) bookingIds.push(bookingDTO.id)
+      }
+
+      // Persist the updated participant count once, after all bookings succeed.
       await activityService.saveActivity(activity)
 
-      const bookingDTO = booking.toDTO()
-
       return created({
-        bookingId: bookingDTO.id,
+        // `bookingId` kept (= first booking id) for backward compatibility with
+        // existing clients that still read the singular field.
+        bookingId: bookingIds[0],
+        bookingIds,
         activityId,
         seniorIds,
         pickupMode,

@@ -25,6 +25,8 @@ export class Activity {
   private rating: number
   private reviews: number
   private images: string[]
+  private overview: string
+  private whatToBring: string[]
   private createdAt: Timestamp
 
   constructor(dto: ActivityDTO)
@@ -55,6 +57,8 @@ export class Activity {
     this.rating = dto.rating
     this.reviews = dto.reviews
     this.images = dto.images
+    this.overview = dto.overview ?? ""
+    this.whatToBring = Array.isArray(dto.whatToBring) ? dto.whatToBring : []
     this.createdAt = dto.createdAt
   }
 
@@ -141,6 +145,8 @@ export class Activity {
       rating: this.rating,
       reviews: this.reviews,
       images: this.images,
+      overview: this.overview,
+      whatToBring: this.whatToBring,
       createdAt: this.createdAt,
     }
   }
